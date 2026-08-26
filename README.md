@@ -211,5 +211,6 @@ les caches.
 
 ## Journal
 
-- **0.1.0** — le moteur, les quatre mondes, le défi du jour, les trois
-  variantes, le partage.
+- **1.0.0** — première publication. Le moteur et sa garantie de 3-connexité,
+  les quatre mondes, le défi du jour, les trois variantes, l’aimant, le
+  partage, les palmarès par configuration. 344 vérifications sur huit suites.
