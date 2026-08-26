@@ -1,0 +1,19 @@
+{
+  "name": "Untangle",
+  "short_name": "Untangle",
+  "description": "Démêlez un écheveau : tirez les sommets jusqu’à ce qu’aucun fil n’en croise un autre. Toute grille est démêlable, et son dessin est unique.",
+  "lang": "fr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#2b2318",
+  "theme_color": "#b0762a",
+  "categories": ["games", "puzzle", "casual"],
+  "icons": [
+    { "src": "assets/icon-180.png", "sizes": "180x180", "type": "image/png" },
+    { "src": "assets/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "assets/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" },
+    { "src": "assets/icon.svg", "sizes": "any", "type": "image/svg+xml" }
+  ]
+}

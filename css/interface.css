@@ -1,0 +1,271 @@
+/* Tout ce qui n’est pas le plateau : barre, compteurs, outils, dialogues.
+   Aucune couleur en dur — themes.css est la seule source. */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+/* Cacher, c’est une règle CSS, et une règle CSS se laisse écraser. Le rappel
+   `!important` est donc une pièce du moteur, pas du décor : sans lui, un
+   `display: flex` d’auteur laisse visible un bouton que le code croit caché,
+   et qui ne répond à rien. */
+[hidden] { display: none !important; }
+
+body {
+    margin: 0;
+    min-height: 100dvh;
+    background: var(--fond);
+    background-image: var(--grain);
+    color: var(--encre);
+    font: 16px/1.5 ui-rounded, "Avenir Next", "Segoe UI", system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+}
+
+.app {
+    max-width: 640px;
+    margin: 0 auto;
+    padding: max(12px, env(safe-area-inset-top)) max(14px, env(safe-area-inset-right))
+             max(14px, env(safe-area-inset-bottom)) max(14px, env(safe-area-inset-left));
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+/* ── Barre du haut ───────────────────────────────────────────────────────── */
+
+.barre { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+
+.identite { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.identite p { margin: 0; font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: var(--encre-douce); }
+.identite h1 { margin: 0; font-size: 21px; letter-spacing: .01em; }
+
+.monogramme { width: 34px; height: 34px; flex: none; }
+.monogramme svg { width: 100%; height: 100%; }
+/* L’encre douce, pas la teinte des fils : celle-ci est faite pour se lire sur
+   le plateau, pas sur le fond de la page — en Circuit, le cuivre sur l’ardoise
+   rendait le monogramme quasi invisible. */
+.monogramme path { stroke: var(--encre-douce); stroke-width: 3; fill: none; stroke-linecap: round; }
+.monogramme circle { fill: var(--accent); }
+
+.icones { display: flex; gap: 6px; }
+
+.icones button {
+    width: 40px; height: 40px;
+    border-radius: 12px;
+    border: 1px solid var(--panneau-bord);
+    background: var(--panneau);
+    color: var(--encre);
+    font-size: 17px;
+    line-height: 1;
+    cursor: pointer;
+    /* Sans ça, iOS attend un éventuel double-tap avant de réagir. */
+    touch-action: manipulation;
+    transition: transform var(--transition) ease, background var(--transition) ease;
+}
+
+.icones button:hover { background: var(--fond-relief); }
+.icones button:active { transform: scale(.94); }
+.icones button[aria-pressed="false"] { color: var(--encre-douce); opacity: .55; }
+
+/* ── Compteurs ───────────────────────────────────────────────────────────── */
+
+.hud {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    padding: 10px;
+    border-radius: var(--rayon);
+    background: var(--panneau);
+    border: 1px solid var(--panneau-bord);
+}
+
+.hud div { display: flex; flex-direction: column; gap: 2px; text-align: center; min-width: 0; }
+.hud span { font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--encre-douce); }
+.hud strong { font-size: 17px; font-variant-numeric: tabular-nums; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hud div.alerte strong { color: var(--danger); }
+.hud div.gagne strong { color: var(--accent); }
+
+main { display: flex; flex-direction: column; gap: 12px; }
+
+.annonce {
+    margin: 0;
+    min-height: 1.5em;
+    text-align: center;
+    font-size: 14px;
+    color: var(--encre-douce);
+}
+
+/* ── Outils ──────────────────────────────────────────────────────────────── */
+
+.outils { display: flex; gap: 8px; }
+
+.outil {
+    flex: 1;
+    min-height: 46px;
+    padding: 0 14px;
+    border-radius: 13px;
+    border: 1px solid var(--panneau-bord);
+    background: var(--panneau);
+    color: var(--encre);
+    font: inherit;
+    font-size: 15px;
+    cursor: pointer;
+    touch-action: manipulation;
+    transition: transform var(--transition) ease, background var(--transition) ease;
+}
+
+.outil:hover { background: var(--fond-relief); }
+.outil:active { transform: scale(.97); }
+.outil:disabled { opacity: .4; cursor: default; transform: none; }
+.outil--fort { background: var(--accent); border-color: var(--accent); color: var(--accent-contraste); }
+.outil--fort:hover { filter: brightness(1.06); background: var(--accent); }
+.outil--danger { color: var(--danger); border-color: var(--danger); background: transparent; }
+.pleine-largeur { width: 100%; margin-top: 10px; }
+
+/* ── Dialogues ───────────────────────────────────────────────────────────── */
+
+dialog {
+    width: min(94vw, 460px);
+    max-height: 88dvh;
+    padding: 0;
+    border: 1px solid var(--panneau-bord);
+    border-radius: var(--rayon);
+    background: var(--panneau);
+    color: var(--encre);
+    overflow: auto;
+    overscroll-behavior: contain;
+}
+
+dialog::backdrop { background: rgba(0, 0, 0, .55); backdrop-filter: blur(2px); }
+
+dialog .entete {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 14px 16px;
+    background: var(--panneau);
+    border-bottom: 1px solid var(--panneau-bord);
+}
+
+dialog .entete h2 { margin: 0; font-size: 18px; }
+
+dialog .entete button {
+    width: 36px; height: 36px;
+    border-radius: 10px;
+    border: 1px solid var(--panneau-bord);
+    background: transparent;
+    color: var(--encre);
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+    touch-action: manipulation;
+}
+
+dialog .corps { padding: 14px 16px 18px; }
+dialog .corps + .corps { padding-top: 0; }
+dialog h3 { margin: 18px 0 8px; font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--encre-douce); }
+dialog h3:first-child { margin-top: 0; }
+dialog p { margin: 0 0 10px; font-size: 14.5px; }
+dialog .note { font-size: 13px; color: var(--encre-douce); }
+
+.raccourcis { margin: 0 0 10px; padding: 0; list-style: none; font-size: 14px; }
+.raccourcis li { padding: 4px 0; border-bottom: 1px solid var(--panneau-bord); }
+.raccourcis li:last-child { border-bottom: none; }
+
+kbd {
+    display: inline-block;
+    min-width: 22px;
+    padding: 1px 6px;
+    margin-right: 4px;
+    border: 1px solid var(--panneau-bord);
+    border-bottom-width: 2px;
+    border-radius: 6px;
+    background: var(--fond-relief);
+    font: inherit;
+    font-size: 12px;
+    text-align: center;
+}
+
+/* ── Choix et cases ──────────────────────────────────────────────────────── */
+
+.choix { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.choix button {
+    flex: 1 1 auto;
+    min-height: 42px;
+    padding: 0 12px;
+    border-radius: 11px;
+    border: 1px solid var(--panneau-bord);
+    background: transparent;
+    color: var(--encre);
+    font: inherit;
+    font-size: 14px;
+    cursor: pointer;
+    touch-action: manipulation;
+}
+
+.choix button[aria-pressed="true"] {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--accent-contraste);
+}
+
+.case {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--panneau-bord);
+    cursor: pointer;
+}
+
+.case:last-of-type { border-bottom: none; }
+.case input { width: 20px; height: 20px; margin: 2px 0 0; accent-color: var(--accent); flex: none; }
+.case span { display: flex; flex-direction: column; gap: 2px; }
+.case strong { font-size: 14.5px; font-weight: 600; }
+.case small { font-size: 12.5px; line-height: 1.45; color: var(--encre-douce); }
+
+.version { margin-top: 18px; text-align: center; font-size: 12px; color: var(--encre-douce); }
+
+/* ── Palmarès et fin de partie ───────────────────────────────────────────── */
+
+.tableau { width: 100%; border-collapse: collapse; font-size: 14px; }
+.tableau th, .tableau td { padding: 7px 4px; text-align: right; border-bottom: 1px solid var(--panneau-bord); }
+.tableau th:first-child, .tableau td:first-child { text-align: left; }
+.tableau th { font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--encre-douce); font-weight: 500; }
+.tableau td { font-variant-numeric: tabular-nums; }
+.tableau .vedette { color: var(--accent); font-weight: 600; }
+
+.serie { display: flex; gap: 8px; margin-bottom: 12px; }
+.serie div { flex: 1; padding: 10px; border-radius: 12px; background: var(--fond-relief); text-align: center; }
+.serie span { display: block; font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--encre-douce); }
+.serie strong { font-size: 20px; font-variant-numeric: tabular-nums; }
+
+.resultat { font-size: 17px; }
+.courbe { font-size: 22px; letter-spacing: 3px; margin-bottom: 12px; }
+
+/* ── Adaptations ─────────────────────────────────────────────────────────── */
+
+@media (max-width: 380px) {
+    .identite p { display: none; }
+    .icones button { width: 36px; height: 36px; font-size: 15px; }
+    .hud strong { font-size: 15px; }
+}
+
+/* En paysage court, le plateau et les compteurs se mettent côte à côte :
+   empilés, il ne resterait rien du plateau. */
+@media (orientation: landscape) and (max-height: 560px) {
+    .app { max-width: 100%; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 260px); align-items: start; }
+    .barre { grid-column: 1 / -1; }
+    main { grid-column: 1; }
+    .hud { grid-column: 2; grid-row: 2; grid-template-columns: repeat(2, 1fr); }
+    .cadre { --cote: max(200px, min(48vw, calc(100dvh - 110px))); }
+    .identite p { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .icones button, .outil { transition: opacity var(--transition) ease; }
+    .icones button:active, .outil:active { transform: none; }
+}

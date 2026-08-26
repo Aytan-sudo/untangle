@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="cordage">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Untangle</title>
+<meta name="description" content="Démêlez un écheveau : tirez les sommets jusqu’à ce qu’aucun fil n’en croise un autre. Jouable au doigt, hors ligne, sans serveur ni dépendance.">
+<meta name="theme-color" content="#b0762a" id="couleur-barre">
+<meta name="color-scheme" content="light dark">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="assets/icon-180.png">
+<link rel="stylesheet" href="css/themes.css">
+<link rel="stylesheet" href="css/plateau.css">
+<link rel="stylesheet" href="css/interface.css">
+<script>
+    // Restauration du monde avant le premier pixel : posée ici et pas dans
+    // app.js, sinon la page s’affiche en Cordage puis clignote. Sans
+    // préférence, le monde se déduit de la date — même formule que
+    // `themeDuJour()` dans js/themes.js, que ce script ne peut pas importer.
+    // `tests/test-page.mjs` exécute ce script et vérifie qu’il dit la même chose.
+    try {
+        var mondes = ['cordage', 'enluminure', 'circuit', 'constellation'];
+        var enveloppe = JSON.parse(localStorage.getItem('untangle.preferences') || '{}');
+        var prefs = enveloppe && enveloppe.schema === 1 ? enveloppe.donnees || {} : {};
+        var choix = mondes.indexOf(prefs.theme) >= 0 ? prefs.theme : null;
+        if (!choix) {
+            var maintenant = new Date();
+            var jour = maintenant.getFullYear()
+                + '-' + String(maintenant.getMonth() + 1).padStart(2, '0')
+                + '-' + String(maintenant.getDate()).padStart(2, '0');
+            var somme = 0;
+            for (var rang = 0; rang < jour.length; rang++) somme += jour.charCodeAt(rang);
+            choix = mondes[somme % mondes.length];
+        }
+        document.documentElement.dataset.theme = choix;
+    } catch (erreur) { /* le Cordage reste posé sur <html> */ }
+</script>
+</head>
+<body>
+
+<div class="app">
+
+    <header class="barre">
+        <div class="identite">
+            <span class="monogramme" aria-hidden="true">
+                <svg viewBox="0 0 40 40"><path d="M6 30 L34 10 M6 10 L34 30"/><circle cx="6" cy="30" r="4"/><circle cx="34" cy="10" r="4"/><circle cx="6" cy="10" r="4"/><circle cx="34" cy="30" r="4"/></svg>
+            </span>
+            <div><p>Jeu de démêlage</p><h1>Untangle</h1></div>
+        </div>
+        <nav class="icones" aria-label="Menu">
+            <button type="button" id="bouton-aide" aria-label="Règles">?</button>
+            <button type="button" id="bouton-defi" aria-label="Défi du jour">◉</button>
+            <button type="button" id="bouton-theme" aria-label="Changer de monde">◒</button>
+            <button type="button" id="bouton-son" aria-label="Couper le son" aria-pressed="true">♪</button>
+            <button type="button" id="bouton-options" aria-label="Options">···</button>
+        </nav>
+    </header>
+
+    <section class="hud" aria-label="État du démêlage">
+        <div><span>Partie</span><strong id="hud-niveau">Écheveau</strong></div>
+        <div><span>Croisements</span><strong id="hud-croisements">0</strong></div>
+        <div><span>Sommets</span><strong id="hud-touches">0</strong></div>
+        <div><span>Temps</span><strong id="hud-temps">0:00</strong></div>
+    </section>
+
+    <main>
+        <div class="cadre" id="cadre-plateau">
+            <svg id="plateau" viewBox="0 0 1000 1000" tabindex="0" role="application"
+                 aria-label="Écheveau à démêler : tirez les sommets pour supprimer les croisements">
+                <g id="fils"></g>
+                <line id="laisse" x1="0" y1="0" x2="0" y2="0" aria-hidden="true"></line>
+                <g id="sommets"></g>
+            </svg>
+        </div>
+        <p class="annonce" id="annonce" role="status" aria-live="polite"></p>
+        <div class="outils">
+            <button type="button" id="bouton-annuler" class="outil">Annuler</button>
+            <button type="button" id="bouton-indice" class="outil">Indice</button>
+            <button type="button" id="bouton-nouvelle" class="outil outil--fort">Nouvelle</button>
+        </div>
+    </main>
+
+</div>
+
+<dialog id="dialogue-aide" aria-labelledby="titre-aide">
+    <form method="dialog" class="entete"><h2 id="titre-aide">Démêler</h2><button value="fermer" aria-label="Fermer">×</button></form>
+    <div class="corps">
+        <p>Un écheveau de fils relie des sommets, et les fils se croisent. <strong>Tirez les sommets jusqu’à ce qu’aucun fil n’en croise un autre.</strong> Il n’y a rien à deviner, rien à perdre, aucun coup irréversible.</p>
+        <p>La grille est toujours démêlable : le graphe est fabriqué planaire, et la disposition qui l’a produit prouve que zéro croisement est atteignable. Mieux, il est <strong>3-connexe</strong> — un tel graphe n’admet qu’un seul dessin planaire, à réflexion près. Quand vous aurez démêlé, ce sera exactement le dessin du générateur.</p>
+        <h3>Au doigt</h3>
+        <p>Posez le doigt sur un sommet et glissez : le sommet <strong>remonte au-dessus du doigt</strong>, relié par un fil fin, pour rester visible. Relâchez pour poser. Un simple tapotement ne compte pas.</p>
+        <h3>Au clavier</h3>
+        <ul class="raccourcis">
+            <li><kbd>←</kbd><kbd>→</kbd><kbd>↑</kbd><kbd>↓</kbd> viser le sommet voisin dans cette direction</li>
+            <li><kbd>Entrée</kbd> ou <kbd>Espace</kbd> prendre le sommet visé, puis le reposer</li>
+            <li>sommet en main, les flèches le déplacent — <kbd>Maj</kbd> pour le pas fin</li>
+            <li><kbd>N</kbd> nouvelle partie · <kbd>R</kbd> relancer la même · <kbd>T</kbd> monde</li>
+            <li><kbd>U</kbd> ou <kbd>Ctrl</kbd>+<kbd>Z</kbd> annuler · <kbd>H</kbd> indice</li>
+            <li><kbd>?</kbd> ces règles · <kbd>Échap</kbd> fermer</li>
+        </ul>
+        <h3>Ce qui compte</h3>
+        <p>Le chronomètre, et le nombre de <strong>sommets distincts</strong> que vous avez eu besoin de toucher. Les deux ont leur palmarès ; celui qu’on met en avant se choisit dans les Options. Une partie gagnée avec un indice ne concourt pas.</p>
+    </div>
+</dialog>
+
+<dialog id="dialogue-options" aria-labelledby="titre-options">
+    <form method="dialog" class="entete"><h2 id="titre-options">Options</h2><button value="fermer" aria-label="Fermer">×</button></form>
+    <div class="corps">
+        <h3>Écheveau</h3>
+        <div class="choix" id="choix-niveau" role="group" aria-label="Taille de l’écheveau"></div>
+
+        <h3>Variantes</h3>
+        <p class="note">Chacune a son propre palmarès. Le défi du jour se joue toujours en version canonique.</p>
+        <label class="case"><input type="checkbox" id="option-epingles"><span><strong>Sommets épinglés</strong><small>Deux à quatre sommets sont posés d’avance à leur place et refusent de bouger. Le démêlage s’organise autour d’eux.</small></span></label>
+        <label class="case"><input type="checkbox" id="option-cercle"><span><strong>Départ en cercle</strong><small>Tous les sommets commencent posés sur un cercle, comme un diagramme de cordes. Très lisible, très intimidant.</small></span></label>
+        <label class="case"><input type="checkbox" id="option-aveugle"><span><strong>À l’aveugle</strong><small>Les fils fautifs ne sont plus signalés : seul le compteur de croisements reste. C’est le mode expert.</small></span></label>
+
+        <h3>Monde</h3>
+        <div class="choix" id="choix-theme" role="group" aria-label="Monde"></div>
+
+        <h3>Sensations</h3>
+        <label class="case"><input type="checkbox" id="option-sons"><span><strong>Sons</strong><small>Synthèse discrète : la note monte quand une dépose dénoue, elle descend quand elle embrouille.</small></span></label>
+        <label class="case"><input type="checkbox" id="option-vibration"><span><strong>Vibration</strong><small>Une brève secousse quand un croisement se résorbe, si l’appareil sait le faire.</small></span></label>
+        <label class="case"><input type="checkbox" id="option-aimant"><span><strong>Aimant</strong><small>Les sommets s’accrochent à une grille invisible : le doigt gagne en précision, les dessins en netteté. Confort de geste, palmarès commun.</small></span></label>
+        <label class="case"><input type="checkbox" id="option-signes"><span><strong>Fils fautifs en pointillé</strong><small>Les croisements se signalent aussi par un tireté, pour qui ne distingue pas la couleur d’alerte du reste de la palette.</small></span></label>
+
+        <h3>Palmarès</h3>
+        <div class="choix" id="choix-classement" role="group" aria-label="Ce que le palmarès met en avant">
+            <button type="button" data-classement="temps">Au chrono</button>
+            <button type="button" data-classement="economie">À l’économie</button>
+        </div>
+        <p class="note">Les deux records sont enregistrés dans tous les cas ; ce réglage choisit seulement lequel s’affiche en premier.</p>
+
+        <button type="button" id="bouton-stats" class="outil pleine-largeur">Voir le palmarès</button>
+        <p class="version" id="version">Untangle 0.1.0</p>
+    </div>
+</dialog>
+
+<dialog id="dialogue-stats" aria-labelledby="titre-stats">
+    <form method="dialog" class="entete"><h2 id="titre-stats">Palmarès</h2><button value="fermer" aria-label="Fermer">×</button></form>
+    <div class="corps" id="stats-corps"></div>
+    <div class="corps">
+        <button type="button" id="bouton-effacer-stats" class="outil outil--danger pleine-largeur">Tout effacer</button>
+    </div>
+</dialog>
+
+<dialog id="dialogue-fin" aria-labelledby="titre-fin">
+    <form method="dialog" class="entete"><h2 id="titre-fin">Démêlé</h2><button value="fermer" aria-label="Fermer">×</button></form>
+    <div class="corps">
+        <p class="resultat" id="fin-resume"></p>
+        <p class="courbe" id="fin-courbe" aria-label="Courbe des croisements"></p>
+        <p class="note" id="fin-details"></p>
+        <button type="button" id="bouton-generateur" class="outil pleine-largeur">Montrer le dessin du générateur</button>
+        <div class="outils">
+            <button type="button" id="bouton-partager" class="outil">Partager</button>
+            <button type="button" id="bouton-suivante" class="outil outil--fort">Un autre</button>
+        </div>
+    </div>
+</dialog>
+
+<script type="module" src="js/app.js"></script>
+</body>
+</html>

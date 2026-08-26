@@ -1,0 +1,157 @@
+/* Les quatre mondes, et rien d’autre. Seule source des couleurs du jeu : ni
+   plateau.css ni interface.css n’écrit une teinte en dur, et le SVG relit ces
+   variables plutôt que d’en garder une copie.
+
+   Quatre directions artistiques plutôt que quatre variations d’une seule —
+   deux claires, deux sombres. Le squelette dessiné reste identique partout :
+   ce sont l’épaisseur des fils, la forme des embouts, la lueur et la palette
+   qui changent de monde. Aucun JavaScript par thème.
+
+   Toute variable ajoutée ici doit l’être dans les quatre : une variable
+   oubliée ne lève aucune erreur, elle laisse simplement une couleur claire au
+   milieu d’un monde sombre. `tests/test-page.mjs` monte la garde. */
+
+:root {
+    --rayon: 16px;
+    --transition: 160ms;
+}
+
+/* ── Cordage ─ toile de voile écrue, chanvre goudronné, cosses de laiton ── */
+[data-theme="cordage"] {
+    --fond: #e5d9c0;
+    --fond-relief: #d8c9a9;
+    --grain: repeating-linear-gradient(45deg, rgba(120, 100, 70, .05) 0 2px, transparent 2px 5px),
+             repeating-linear-gradient(-45deg, rgba(120, 100, 70, .05) 0 2px, transparent 2px 5px);
+    --panneau: #f6efdf;
+    --panneau-bord: #cdbb9a;
+    --encre: #3a3128;
+    --encre-douce: #6f6252;
+    --accent: #b0762a;
+    --accent-contraste: #fdf8ec;
+    --plateau-fond: #efe5cf;
+    --plateau-bord: #c9b795;
+    --fil-fond: #6a5943;
+    --fil-ame: #a08a68;
+    --fil-epaisseur: 9;
+    --ame-epaisseur: 3.5;
+    --fil-embout: round;
+    --fil-fautif: #b4402a;
+    --fil-fautif-ame: #e08163;
+    --sommet: #c39c4d;
+    --sommet-bord: #7d5f21;
+    --sommet-coeur: #f6efdf;
+    --sommet-rayon: 17;
+    --coeur-rayon: 6;
+    --sommet-epingle: #6f6252;
+    --sommet-saisi: #b0762a;
+    --halo: rgba(176, 118, 42, .28);
+    --lueur: none;
+    --danger: #a5341f;
+    --ombre: rgba(58, 49, 40, .22);
+}
+
+/* ── Enluminure ─ entrelacs à l’encre sur parchemin, cabochons vermillon ── */
+[data-theme="enluminure"] {
+    --fond: #e9dab4;
+    --fond-relief: #dcc99b;
+    --grain: radial-gradient(circle at 20% 30%, rgba(150, 120, 70, .07) 0 40%, transparent 60%),
+             radial-gradient(circle at 75% 70%, rgba(150, 120, 70, .06) 0 35%, transparent 55%);
+    --panneau: #f8f0d8;
+    --panneau-bord: #d3bd8b;
+    --encre: #37240f;
+    --encre-douce: #6d552f;
+    --accent: #a83226;
+    --accent-contraste: #fdf6e4;
+    --plateau-fond: #f2e6c4;
+    --plateau-bord: #cdb37c;
+    --fil-fond: #3d2a15;
+    --fil-ame: #f2e6c4;
+    --fil-epaisseur: 9;
+    --ame-epaisseur: 3.2;
+    --fil-embout: round;
+    --fil-fautif: #a83226;
+    --fil-fautif-ame: #f6ddb8;
+    /* Cabochon d’or cerné d’encre, cœur vermillon : sans cette inversion, les
+       sommets prenaient la teinte des fils échauffés et s’y perdaient. */
+    --sommet: #e8b849;
+    --sommet-bord: #3d2a15;
+    --sommet-coeur: #a83226;
+    --sommet-rayon: 16;
+    --coeur-rayon: 6.5;
+    --sommet-epingle: #3d2a15;
+    --sommet-saisi: #d4a03a;
+    --halo: rgba(168, 50, 38, .24);
+    --lueur: none;
+    --danger: #93261b;
+    --ombre: rgba(55, 36, 15, .2);
+}
+
+/* ── Circuit ─ ardoise sérigraphiée, pistes de cuivre, pastilles de soudure ── */
+[data-theme="circuit"] {
+    --fond: #0d1a15;
+    --fond-relief: #122019;
+    --grain: repeating-linear-gradient(0deg, rgba(62, 207, 142, .04) 0 1px, transparent 1px 28px),
+             repeating-linear-gradient(90deg, rgba(62, 207, 142, .04) 0 1px, transparent 1px 28px);
+    --panneau: #14241d;
+    --panneau-bord: #26473a;
+    --encre: #d7ece1;
+    --encre-douce: #7ea394;
+    --accent: #3ecf8e;
+    --accent-contraste: #06120d;
+    --plateau-fond: #10201a;
+    --plateau-bord: #2b5244;
+    --fil-fond: #8a5825;
+    --fil-ame: #dd9d55;
+    --fil-epaisseur: 8;
+    --ame-epaisseur: 3;
+    --fil-embout: butt;
+    --fil-fautif: #bf3a2a;
+    --fil-fautif-ame: #ff9a86;
+    --sommet: #dd9d55;
+    --sommet-bord: #f3cd9a;
+    --sommet-coeur: #10201a;
+    --sommet-rayon: 16;
+    --coeur-rayon: 6;
+    --sommet-epingle: #7ea394;
+    --sommet-saisi: #3ecf8e;
+    --halo: rgba(62, 207, 142, .26);
+    --lueur: drop-shadow(0 0 3px rgba(221, 157, 85, .45));
+    --danger: #e0503c;
+    --ombre: rgba(0, 0, 0, .5);
+}
+
+/* ── Constellation ─ nuit profonde, traînées fines, sommets en étoiles ── */
+[data-theme="constellation"] {
+    --fond: #070a14;
+    --fond-relief: #0b1020;
+    --grain: radial-gradient(circle at 15% 20%, rgba(122, 162, 247, .10) 0 1px, transparent 2px),
+             radial-gradient(circle at 68% 42%, rgba(255, 255, 255, .09) 0 1px, transparent 2px),
+             radial-gradient(circle at 35% 78%, rgba(122, 162, 247, .08) 0 1px, transparent 2px),
+             radial-gradient(circle at 86% 88%, rgba(255, 255, 255, .07) 0 1px, transparent 2px);
+    --panneau: #0d1426;
+    --panneau-bord: #22304f;
+    --encre: #e0e6ff;
+    --encre-douce: #8c98be;
+    --accent: #7aa2f7;
+    --accent-contraste: #060a14;
+    --plateau-fond: #090e1c;
+    --plateau-bord: #1d2947;
+    --fil-fond: #2a3a66;
+    --fil-ame: #9cb3ea;
+    --fil-epaisseur: 4.5;
+    --ame-epaisseur: 1.6;
+    --fil-embout: round;
+    --fil-fautif: #7b2f45;
+    --fil-fautif-ame: #ff8095;
+    --sommet: #e7edff;
+    --sommet-bord: #7aa2f7;
+    --sommet-coeur: #ffffff;
+    --sommet-rayon: 13;
+    --coeur-rayon: 5;
+    --sommet-epingle: #8c98be;
+    --sommet-saisi: #7aa2f7;
+    --halo: rgba(122, 162, 247, .3);
+    --lueur: drop-shadow(0 0 5px rgba(156, 179, 234, .55));
+    --danger: #e8546e;
+    --ombre: rgba(0, 0, 0, .6);
+}

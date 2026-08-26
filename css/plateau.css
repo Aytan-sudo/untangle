@@ -1,0 +1,133 @@
+/* La géométrie du plateau. Pas une teinte écrite ici : tout vient de
+   themes.css. Le plateau est un SVG à viewBox fixe — ni zoom ni déplacement,
+   l’écheveau tient toujours dans l’écran, c’est un choix assumé. */
+
+.cadre {
+    /* Le plateau se taille dans ce qui reste une fois la barre, les compteurs
+       et les outils servis : sur un écran court, ce sont les outils qui
+       doivent rester atteignables, pas le plateau qui doit rester grand. Le
+       plancher évite qu’un clavier virtuel ne le réduise à un timbre-poste. */
+    --cote: max(220px, min(92vw, 560px, calc(100dvh - 288px)));
+    position: relative;
+    width: var(--cote);
+    height: var(--cote);
+    margin: 0 auto;
+    border-radius: var(--rayon);
+    background: var(--plateau-fond);
+    background-image: var(--grain);
+    border: 1px solid var(--plateau-bord);
+    box-shadow: 0 10px 30px -18px var(--ombre);
+    overflow: hidden;
+}
+
+#plateau {
+    display: block;
+    width: 100%;
+    height: 100%;
+    /* Le plateau capte les gestes directs : sans ça, le glissement d’un
+       sommet fait défiler la page au lieu de tirer le fil. */
+    touch-action: none;
+    cursor: grab;
+    outline: none;
+}
+
+#plateau:focus-visible { box-shadow: inset 0 0 0 3px var(--accent); }
+#plateau.tire { cursor: grabbing; }
+
+/* ── Les fils ──────────────────────────────────────────────────────────────
+   Deux traits superposés par fil : l’âme claire sur le fond sombre. C’est ce
+   qui fait un cordage tressé en Cordage, un double filet en Enluminure, une
+   piste à reflet en Circuit et une traînée lumineuse en Constellation — même
+   squelette, quatre matières. */
+
+#fils { filter: var(--lueur); }
+
+.fil-fond, .fil-ame {
+    stroke-linecap: var(--fil-embout);
+    fill: none;
+    transition: stroke var(--transition) ease;
+}
+
+.fil-fond { stroke: var(--fil-fond); stroke-width: var(--fil-epaisseur); }
+.fil-ame { stroke: var(--fil-ame); stroke-width: var(--ame-epaisseur); }
+
+/* La chaleur d’un fil, c’est le nombre de croisements qu’il porte. Un drapeau
+   « fautif / sain » ne dirait rien au départ — quarante-six fils sur
+   quarante-huit sont fautifs, le plateau devient un mur uniforme. Trois
+   paliers mélangés à la teinte d’alerte gardent le plateau lisible du premier
+   geste au dernier. */
+.fil--chaud1 .fil-fond { stroke: color-mix(in oklab, var(--fil-fautif) 32%, var(--fil-fond)); }
+.fil--chaud1 .fil-ame { stroke: color-mix(in oklab, var(--fil-fautif-ame) 32%, var(--fil-ame)); }
+.fil--chaud2 .fil-fond { stroke: color-mix(in oklab, var(--fil-fautif) 66%, var(--fil-fond)); }
+.fil--chaud2 .fil-ame { stroke: color-mix(in oklab, var(--fil-fautif-ame) 66%, var(--fil-ame)); }
+.fil--chaud3 .fil-fond { stroke: var(--fil-fautif); }
+.fil--chaud3 .fil-ame { stroke: var(--fil-fautif-ame); }
+
+/* La couleur porte une information : elle ne peut pas la porter seule. Le
+   tireté se resserre avec la chaleur, comme la teinte. */
+[data-signes="oui"] .fil--chaud2 .fil-ame { stroke-dasharray: 22 12; }
+[data-signes="oui"] .fil--chaud3 .fil-ame { stroke-dasharray: 10 8; }
+
+/* À l’aveugle, plus rien ne se signale : seul le compteur de croisements
+   subsiste. */
+[data-aveugle="oui"] .fil-fond { stroke: var(--fil-fond); }
+[data-aveugle="oui"] .fil-ame { stroke: var(--fil-ame); stroke-dasharray: none; }
+
+/* ── La laisse ─────────────────────────────────────────────────────────────
+   Le trait fin qui relie le doigt au sommet qu’il tire. Le sommet remonte
+   au-dessus du doigt pour rester visible ; la laisse dit où le doigt se
+   trouve vraiment. */
+
+#laisse {
+    stroke: var(--accent);
+    stroke-width: 2;
+    stroke-dasharray: 7 7;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--transition) ease;
+}
+
+#laisse.tendue { opacity: .65; }
+
+/* ── Les sommets ───────────────────────────────────────────────────────────
+   Le pointeur est traité par le plateau lui-même, qui prend le sommet le plus
+   proche du doigt : viser une cible de 44 px parmi trente-quatre sommets est
+   impossible sur un téléphone, chercher le plus proche ne l’est pas. */
+
+.sommet { pointer-events: none; }
+
+.sommet-halo {
+    fill: var(--halo);
+    opacity: 0;
+    transition: opacity var(--transition) ease;
+}
+
+.sommet-corps {
+    fill: var(--sommet);
+    stroke: var(--sommet-bord);
+    stroke-width: 2.5;
+    filter: var(--lueur);
+    transition: fill var(--transition) ease;
+}
+
+.sommet-coeur { fill: var(--sommet-coeur); }
+
+.sommet-rivet {
+    stroke: var(--sommet-coeur);
+    stroke-width: 2.5;
+    stroke-linecap: round;
+    opacity: 0;
+}
+
+/* Un sommet épinglé ne bouge pas : il le dit par sa teinte et par son rivet
+   en croix, pour que la couleur ne soit pas seule à le dire. */
+.sommet--epingle .sommet-corps { fill: var(--sommet-epingle); }
+.sommet--epingle .sommet-rivet { opacity: 1; }
+
+.sommet--vise .sommet-halo { opacity: .8; }
+.sommet--saisi .sommet-halo { opacity: 1; }
+.sommet--saisi .sommet-corps { fill: var(--sommet-saisi); }
+
+@media (prefers-reduced-motion: reduce) {
+    .fil-fond, .fil-ame, .sommet-halo, .sommet-corps, #laisse { transition: none; }
+}

@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Untangle">
+    <rect width="512" height="512" rx="112" fill="#2b2318"/>
+    <g stroke-linecap="round" fill="none">
+        <path d="M150 150 L362 362 M362 150 L150 362" stroke="#6a5943" stroke-width="34"/>
+        <path d="M150 150 L362 362 M362 150 L150 362" stroke="#a08a68" stroke-width="12"/>
+    </g>
+    <g fill="#c39c4d" stroke="#7d5f21" stroke-width="8">
+        <circle cx="150" cy="150" r="46"/>
+        <circle cx="362" cy="150" r="46"/>
+        <circle cx="150" cy="362" r="46"/>
+        <circle cx="362" cy="362" r="46"/>
+    </g>
+    <g fill="#2b2318">
+        <circle cx="150" cy="150" r="16"/>
+        <circle cx="362" cy="150" r="16"/>
+        <circle cx="150" cy="362" r="16"/>
+        <circle cx="362" cy="362" r="16"/>
+    </g>
+</svg>
