@@ -48,7 +48,7 @@ body {
 .icones { display: flex; gap: 6px; }
 
 .icones button {
-    width: 40px; height: 40px;
+    width: 44px; height: 44px;
     border-radius: 12px;
     border: 1px solid var(--panneau-bord);
     background: var(--panneau);
@@ -198,7 +198,7 @@ kbd {
 
 .choix button {
     flex: 1 1 auto;
-    min-height: 42px;
+    min-height: 44px;
     padding: 0 12px;
     border-radius: 11px;
     border: 1px solid var(--panneau-bord);
@@ -254,7 +254,7 @@ kbd {
 
 @media (max-width: 380px) {
     .identite p { display: none; }
-    .icones button { width: 36px; height: 36px; font-size: 15px; }
+    .icones button { width: 44px; height: 44px; font-size: 15px; }
     .hud strong { font-size: 15px; }
 }
 

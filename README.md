@@ -7,6 +7,13 @@ hors ligne, sans serveur ni dépendance.
 Rien à deviner, rien à perdre, aucun coup irréversible : il n’y a qu’un nœud,
 et il finit toujours par céder.
 
+## Version 1.1.1
+
+- les cibles tactiles de l'interface passent à 44 px (boutons d'en-tête,
+  boutons texte, listes déroulantes), conformément à la convention.
+- le test des cibles tactiles vérifie désormais la règle (≥ 44 px) au lieu de
+  figer l'ancienne valeur de 40 px.
+
 ## La particularité : le dessin est unique
 
 La plupart des démêleurs promettent qu’une solution existe. Celui-ci promet

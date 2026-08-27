@@ -167,7 +167,7 @@ check('mobile, paysage et mouvement réduit sont traités',
 check('aucune règle d’auteur ne peut réafficher un élément caché',
     /\[hidden\]\s*\{[^}]*display:\s*none\s*!important/.test(styles));
 check('les cibles tactiles sont assez grandes',
-    /\.outil\s*\{[^}]*min-height:\s*4[6-9]px/.test(styles) && /\.icones button\s*\{[^}]*height:\s*40px/.test(styles));
+    /\.outil\s*\{[^}]*min-height:\s*(4[4-9]|[5-9]\d)px/.test(styles) && /\.icones button\s*\{[^}]*height:\s*(4[4-9]|[5-9]\d)px/.test(styles));
 
 // ── Couleurs : themes.css est la seule source ─────────────────────────────
 const horsThemes = [lire('css/plateau.css'), lire('css/interface.css')].join('\n')
