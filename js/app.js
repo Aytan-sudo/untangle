@@ -6,6 +6,11 @@ import {
     courbeEnEmojis, dateLocale, formaterTemps, lireParametres, messageDePartage
 } from './defi.js';
 import { NIVEAUX, genererPuzzle } from './generateur.js';
+import {
+    MODE_GRILLE, MODE_MONTEE, MONTEE, PALIERS, SOMMETS_EN_TOUT, courbeDeMontee,
+    estAchevee, franchir, graineDuPalier, monteeNeuve, palierCourant, rangAffiche,
+    restaurerMontee, serialiserMontee, totalMontee
+} from './montee.js';
 import { comptesParArete, conflits } from './graphe.js';
 import { graineLibre } from './hasard.js';
 import {
@@ -29,12 +34,17 @@ import {
 import { THEMES, THEME_AUTOMATIQUE, themeAffiche, themeSuivant } from './themes.js';
 import { IDS as VARIANTES_IDS, resumeVariantes, variantesDepuis } from './variantes.js';
 import {
-    $, annoncer, construireChoix, copier, entreesNiveaux, entreesThemes, libelleConfiguration,
-    majHud, marquerChoix, ouvrir, poserTheme, rendreStatistiques, vibrer
+    $, annoncer, construireChoix, copier, entreesModes, entreesNiveaux, entreesThemes,
+    libelleConfiguration, majHud, marquerChoix, ouvrir, poserTheme, rendreDefis,
+    rendreEchelle, rendreStatistiques, vibrer
 } from './ui.js';
 
 let preferences = chargerPreferences();
 let meta = null;
+// Le parcours en cours, ou `null` quand on joue une grille seule. C’est lui
+// qui porte le chronomètre du mode : `etat` ne connaît que la grille sous le
+// doigt, et n’a rien à savoir des cinq autres.
+let montee = null;
 let puzzle = null;
 let etat = null;
 let visee = -1;
@@ -56,6 +66,13 @@ let dernierEnregistrement = 0;
 // l’arrière-plan : le temps compté est celui qu’on a réellement passé dessus.
 
 const tempsActuel = () => tempsCumule + (chronoActif ? performance.now() - debutChrono : 0);
+
+// En montée, le temps affiché est celui de tout le parcours : les paliers déjà
+// franchis, plus celui qu’on démêle. C’est l’unique tension du mode — pas de
+// vies, pas de sablier, une horloge qui ne se remet jamais à zéro avant le
+// Dédale.
+const tempsDuParcours = () => (montee ? totalMontee(montee).tempsMs : 0) + tempsActuel();
+const tempsAffiche = () => (meta?.mode === MODE_MONTEE ? tempsDuParcours() : tempsActuel());
 
 function lancerChrono() {
     aCommence = true;
@@ -92,7 +109,12 @@ function enregistrerReglages() {
 }
 
 function majFormulaire() {
+    marquerChoix($('choix-mode'), preferences.mode, 'valeur');
     marquerChoix($('choix-niveau'), preferences.niveau);
+    // En montée, choisir une taille n’a plus de sens : les six y passent dans
+    // l’ordre. Le bloc disparaît plutôt que de rester là, grisé, à faire
+    // croire qu’il attend quelque chose.
+    $('bloc-taille').hidden = preferences.mode === MODE_MONTEE;
     // Même en « monde du jour », on marque le monde effectivement affiché :
     // la case dit d’où vient le choix, les boutons disent lequel c’est.
     marquerChoix($('choix-theme'), themeAffiche(preferences.theme, dateLocale()));
@@ -105,27 +127,43 @@ function majFormulaire() {
 
 // ── Cycle d’une partie ────────────────────────────────────────────────────
 
+// La case du HUD est étroite : 111 px sur un iPhone 15, 86 px sur un SE.
+// « Montée 4/6 » y tient partout ; « Montée du jour 4/6 » nulle part. C’est le
+// rang qu’on garde — il change à chaque palier, et c’est ce qu’on regarde. Que
+// la montée soit celle du jour, l’annonce le dit au départ et l’échelle le
+// rappelle en dessous.
 function nomDeLaPartie() {
     const nom = NIVEAUX[meta.niveau]?.nom || meta.niveau;
+    if (meta.mode === MODE_MONTEE) {
+        return `${MONTEE.nom} ${rangAffiche(montee)}/${PALIERS.length}`;
+    }
     if (meta.dateJour) return meta.quotidien ? 'Défi du jour' : `Défi ${meta.dateJour.slice(8)}/${meta.dateJour.slice(5, 7)}`;
     const variantes = resumeVariantes(meta.variantes);
     return variantes ? `${nom} · ${variantes}` : nom;
 }
 
-function demarrer(nouvelleMeta, sauvegarde = null) {
+// `report` sert à la relance d’un palier de montée : le temps déjà passé
+// dessus revient dans le compteur du palier neuf. Sans lui, `R` serait un
+// bouton « effacer le chronomètre » au milieu d’un mode qui n’a que le
+// chronomètre pour tension.
+function demarrer(nouvelleMeta, sauvegarde = null, report = 0) {
     meta = nouvelleMeta;
+    const enMontee = meta.mode === MODE_MONTEE;
+    if (enMontee) meta.niveau = palierCourant(montee);
     puzzle = genererPuzzle({
-        graine: meta.graine,
+        // Une graine par palier, dérivée de celle du parcours : deux montées
+        // de graine voisine n’ont aucune grille en commun.
+        graine: enMontee ? graineDuPalier(montee.graine, montee.rang) : meta.graine,
         niveau: meta.niveau,
         cercle: meta.variantes.cercle,
         epingles: meta.variantes.epingles
     });
     etat = sauvegarde ? restaurer(puzzle, sauvegarde.partie) : partieNeuve(puzzle);
-    tempsCumule = sauvegarde ? Number(sauvegarde.tempsMs) || 0 : 0;
+    tempsCumule = report || (sauvegarde ? Number(sauvegarde.tempsMs) || 0 : 0);
     chronoActif = false;
     // Une partie reprise a déjà commencé : son chrono repart au retour de
     // l’onglet, sans attendre qu’on saisisse un sommet.
-    aCommence = Boolean(sauvegarde) && (tempsCumule > 0 || etat.gestes > 0);
+    aCommence = tempsCumule > 0 || (Boolean(sauvegarde) && etat.gestes > 0);
     termine = false;
     resultatEnregistre = false;
     montreLeGenerateur = false;
@@ -134,15 +172,28 @@ function demarrer(nouvelleMeta, sauvegarde = null) {
     origineSaisie = null;
 
     document.documentElement.dataset.aveugle = meta.variantes.aveugle ? 'oui' : 'non';
+    $('echelle').hidden = !enMontee;
+    if (enMontee) rendreEchelle($('echelle'), montee);
     construirePlateau(document, {
         svg: $('plateau'), fils: $('fils'), sommets: $('sommets'), laisse: $('laisse')
     }, puzzle);
     rendreTout(etat.positions);
     rafraichir();
-    annoncer(meta.quotidien
-        ? `Défi du ${meta.dateJour.split('-').reverse().join('/')} — le même écheveau pour tout le monde.`
-        : `${puzzle.sommets} sommets, ${puzzle.aretes.length} fils. Tirez.`);
+    annoncer(annonceDeDepart());
     if (estTerminee(etat)) conclure();
+}
+
+function annonceDeDepart() {
+    const tirez = `${puzzle.sommets} sommets, ${puzzle.aretes.length} fils. Tirez.`;
+    if (meta.mode === MODE_MONTEE) {
+        const nom = NIVEAUX[meta.niveau].nom;
+        const quelle = meta.quotidien ? `${MONTEE.nom} du jour` : MONTEE.nom;
+        return `${quelle}, palier ${rangAffiche(montee)} sur ${PALIERS.length} : ${nom}. ${tirez}`;
+    }
+    if (meta.quotidien) {
+        return `Défi du ${meta.dateJour.split('-').reverse().join('/')} — le même écheveau pour tout le monde.`;
+    }
+    return tirez;
 }
 
 function rafraichir() {
@@ -153,7 +204,7 @@ function rafraichir() {
         partie: nomDeLaPartie(),
         croisements: paires.length,
         touches: etat.touches.length,
-        temps: tempsActuel(),
+        temps: tempsAffiche(),
         termine
     });
     $('bouton-annuler').disabled = etat.historique.length === 0;
@@ -165,11 +216,20 @@ function sauvegarder(force = false) {
     const maintenant = Date.now();
     if (!force && maintenant - dernierEnregistrement < 1200) return;
     dernierEnregistrement = maintenant;
-    if (termine) { oublierPartie(); return; }
+    // Une montée en cours se garde même entre deux paliers : ce qu’on reprend,
+    // c’est le parcours, pas la grille. Elle ne s’oublie qu’une fois bouclée.
+    const enCoursDeMontee = Boolean(montee) && !estAchevee(montee);
+    if (termine && !enCoursDeMontee) { oublierPartie(); return; }
+    // Palier franchi mais parcours en cours : on n’écrit ni la grille ni son
+    // chrono — le temps vient d’être versé dans la montée, le recompter le
+    // ferait compter deux fois à la réouverture.
+    const grilleEnCours = !termine;
     enregistrerPartie({
-        graine: meta.graine, niveau: meta.niveau, dateJour: meta.dateJour,
+        mode: meta.mode, graine: meta.graine, niveau: meta.niveau, dateJour: meta.dateJour,
         quotidien: meta.quotidien, variantes: meta.variantes,
-        tempsMs: tempsActuel(), partie: serialiser(etat)
+        montee: montee ? serialiserMontee(montee) : null,
+        tempsMs: grilleEnCours ? tempsActuel() : 0,
+        partie: grilleEnCours ? serialiser(etat) : null
     });
 }
 
@@ -177,12 +237,14 @@ function conclure() {
     if (termine) return;
     termine = true;
     arreterChrono();
-    oublierPartie();
     marquer(-1, 'sommet--saisi', false);
     marquer(-1, 'sommet--vise', false);
     rafraichir();
     if (preferences.sons) sonVictoire();
     vibrer(preferences.vibration, [18, 60, 18, 60, 40]);
+
+    if (meta.mode === MODE_MONTEE) { conclureLePalier(); return; }
+    oublierPartie();
 
     if (!resultatEnregistre) {
         resultatEnregistre = true;
@@ -201,6 +263,73 @@ function conclure() {
     $('fin-details').textContent = horsPalmares(etat)
         ? `${etat.indices} indice${etat.indices > 1 ? 's' : ''} : cette partie ne concourt pas au palmarès.`
         : `${libelleConfiguration(cleConfiguration(meta.niveau, meta.variantes))} · ${etat.gestes} geste${etat.gestes > 1 ? 's' : ''} · sans indice.`;
+    $('titre-fin').textContent = 'Démêlé';
+    $('bouton-suivante').textContent = 'Un autre';
+    $('bouton-generateur').textContent = 'Montrer le dessin du générateur';
+    ouvrir($('dialogue-fin'));
+}
+
+// ── La Montée ─────────────────────────────────────────────────────────────
+// Un palier franchi n’ouvre pas le dialogue de fin : il ouvre un palier de
+// respiration, avec l’échelle et le temps du parcours. Le dialogue de fin est
+// réservé à l’arrivée — sinon le mode aurait six fins et aucune.
+
+function conclureLePalier() {
+    franchir(montee, {
+        tempsMs: tempsActuel(), touches: etat.touches.length,
+        gestes: etat.gestes, indices: etat.indices
+    });
+    rendreEchelle($('echelle'), montee);
+    rafraichir();
+    if (estAchevee(montee)) { conclureLaMontee(); return; }
+
+    sauvegarder(true);
+    const dernier = montee.franchis[montee.franchis.length - 1];
+    const suivant = NIVEAUX[palierCourant(montee)];
+    $('titre-palier').textContent = `Palier ${montee.franchis.length} sur ${PALIERS.length}`;
+    const franchi = NIVEAUX[dernier.niveau];
+    $('palier-resume').textContent =
+        `${franchi.nom} démêlé${franchi.feminin ? 'e' : ''} en ${formaterTemps(dernier.tempsMs)}.`;
+    $('palier-suite').textContent =
+        `Au suivant : ${suivant.nom}, ${suivant.sommets} sommets. `
+        + `${formaterTemps(totalMontee(montee).tempsMs)} depuis le départ.`;
+    rendreEchelle($('palier-echelle'), montee);
+    ouvrir($('dialogue-palier'));
+    annoncer(`Palier franchi. Au suivant : ${suivant.nom}.`);
+}
+
+// Le panneau de palier est une étape, pas une fenêtre qu’on écarte : le
+// fermer par la croix ou par Échap laissait le joueur devant une grille déjà
+// démêlée, sans indice, sans annulation et sans bouton pour avancer — la
+// montée était bloquée. Toute fermeture enchaîne donc sur le palier suivant,
+// et le bouton Continuer ne fait rien d’autre que fermer.
+function continuerLaMontee() {
+    if (!montee || estAchevee(montee) || meta.mode !== MODE_MONTEE) return;
+    demarrer({ ...meta });
+    sauvegarder(true);
+}
+
+function conclureLaMontee() {
+    const total = totalMontee(montee);
+    oublierPartie();
+    if (!resultatEnregistre) {
+        resultatEnregistre = true;
+        enregistrerVictoire({
+            niveau: MONTEE.id, variantes: meta.variantes,
+            quotidien: meta.quotidien, dateJour: meta.dateJour,
+            tempsMs: total.tempsMs, touches: total.touches,
+            gestes: total.gestes, indices: total.indices
+        });
+    }
+    $('titre-fin').textContent = `${MONTEE.nom} bouclée`;
+    $('fin-resume').textContent =
+        `Du Fil au Dédale en ${formaterTemps(total.tempsMs)}, en touchant `
+        + `${total.touches} sommets sur ${SOMMETS_EN_TOUT}.`;
+    $('fin-courbe').textContent = courbeDeMontee(montee);
+    $('fin-details').textContent = total.indices
+        ? `${total.indices} indice${total.indices > 1 ? 's' : ''} : cette montée ne concourt pas au palmarès.`
+        : `${libelleConfiguration(cleConfiguration(MONTEE.id, meta.variantes))} · six paliers · sans indice.`;
+    $('bouton-suivante').textContent = 'Une autre montée';
     $('bouton-generateur').textContent = 'Montrer le dessin du générateur';
     ouvrir($('dialogue-fin'));
 }
@@ -249,23 +378,49 @@ function basculerGenerateur() {
 
 function partieLibre(graine = graineLibre()) {
     history.replaceState(null, '', location.pathname);
+    if (preferences.mode === MODE_MONTEE) { lancerMontee(graine, null); return; }
+    montee = null;
     demarrer({
+        mode: MODE_GRILLE,
         graine, niveau: preferences.niveau, dateJour: null, quotidien: false,
         variantes: variantesDepuis(preferences)
+    });
+}
+
+// Une montée du jour se joue en version canonique, comme l’Écheveau du jour :
+// personne ne compare six paliers épinglés à six paliers nus.
+function lancerMontee(graine, dateJour) {
+    montee = monteeNeuve(graine);
+    demarrer({
+        mode: MODE_MONTEE, graine, niveau: palierCourant(montee),
+        dateJour, quotidien: Boolean(dateJour),
+        variantes: dateJour ? variantesDepuis({}) : variantesDepuis(preferences)
     });
 }
 
 function partieDuJour() {
     const jour = dateLocale();
     history.replaceState(null, '', `?jour=${jour}`);
+    montee = null;
     demarrer({
+        mode: MODE_GRILLE,
         graine: jour, niveau: NIVEAU_QUOTIDIEN, dateJour: jour, quotidien: true,
         variantes: variantesDepuis({})
     });
 }
 
+function monteeDuJour() {
+    const jour = dateLocale();
+    history.replaceState(null, '', `?montee=${jour}`);
+    lancerMontee(jour, jour);
+}
+
 function relancer() {
-    demarrer({ ...meta });
+    // En montée, le temps déjà passé sur le palier revient dans le compteur :
+    // `R` remet la grille à plat, pas l’horloge.
+    const report = meta.mode === MODE_MONTEE ? tempsActuel() : 0;
+    demarrer({ ...meta }, null, report);
+    if (report > 0) lancerChrono();
     annoncer('Le même écheveau, remis à plat.');
 }
 
@@ -365,6 +520,9 @@ const actions = {
 // ── Commandes ─────────────────────────────────────────────────────────────
 
 function annulerUnGeste() {
+    // Un palier franchi est versé dans la montée : le défaire rendrait un
+    // temps déjà compté et laisserait le parcours d’un cran en avance.
+    if (termine && meta.mode === MODE_MONTEE) { annoncer('Le palier est franchi.'); return; }
     if (!annuler(etat)) { annoncer('Rien à annuler.'); return; }
     termine = false;
     rendreTout(etat.positions);
@@ -377,7 +535,15 @@ function annulerUnGeste() {
 function demanderUnIndice() {
     if (termine) return;
     const conseil = appliquerIndice(etat);
-    if (!conseil) { annoncer('Plus rien à dégager.'); return; }
+    // L’indice est un conseil local, pas un solveur : il arrive qu’aucun
+    // sommet n’ait de meilleure place, sur un plateau encore emmêlé. Il rend
+    // alors la main sans se consommer — la partie reste au palmarès.
+    if (!conseil) {
+        annoncer(termine || croisementsAffiches === 0
+            ? 'Plus rien à dégager.'
+            : 'Aucun sommet n’a de meilleure place : à vous de trouver le détour.');
+        return;
+    }
     lancerChrono();
     rendreTout(etat.positions);
     const restants = rafraichir();
@@ -389,6 +555,14 @@ function demanderUnIndice() {
     if (restants === 0) conclure();
 }
 
+// Les deux défis du jour derrière un seul bouton : à cinq cibles de 44 px, la
+// barre est déjà pleine sur un iPhone SE, et un sixième bouton y chasserait le
+// titre. Le panneau se recalcule à chaque ouverture — la série a pu changer.
+function ouvrirLesDefis() {
+    rendreDefis(dateLocale(), chargerStatistiques());
+    ouvrir($('dialogue-defis'));
+}
+
 function tournerLeMonde() {
     const actuel = themeAffiche(preferences.theme, dateLocale());
     preferences.theme = themeSuivant(actuel);
@@ -398,10 +572,15 @@ function tournerLeMonde() {
 }
 
 function partager() {
+    const enMontee = meta.mode === MODE_MONTEE;
+    const total = montee ? totalMontee(montee) : null;
+    const acheve = enMontee ? Boolean(montee && estAchevee(montee)) : termine;
     const texte = messageDePartage({
-        base: location.href, meta, termine,
-        tempsMs: tempsActuel(), touches: etat.touches.length,
-        indices: etat.indices, courbe: courbe(etat)
+        base: location.href, meta, termine: acheve, montee,
+        tempsMs: enMontee ? total.tempsMs : tempsActuel(),
+        touches: enMontee ? total.touches : etat.touches.length,
+        indices: enMontee ? total.indices : etat.indices,
+        courbe: courbe(etat)
     });
     copier(texte).then(reussi => annoncer(reussi ? 'Résultat copié.' : 'La copie a été refusée par le navigateur.'));
 }
@@ -411,8 +590,16 @@ function partager() {
 function brancherInterface() {
     $('version').textContent = `Untangle ${VERSION}`;
 
+    construireChoix($('choix-mode'), entreesModes(), mode => {
+        preferences.mode = mode;
+        enregistrerReglages();
+        partieLibre();
+    });
     construireChoix($('choix-niveau'), entreesNiveaux(), niveau => {
         preferences.niveau = niveau;
+        // Choisir une taille, c’est vouloir cette grille-là : on quitte la
+        // montée plutôt que d’ignorer le clic.
+        preferences.mode = MODE_GRILLE;
         enregistrerReglages();
         partieLibre();
     });
@@ -457,7 +644,7 @@ function brancherInterface() {
         rendreStatistiques(chargerStatistiques(), preferences);
         ouvrir($('dialogue-stats'));
     });
-    $('bouton-defi').addEventListener('click', partieDuJour);
+    $('bouton-defi').addEventListener('click', ouvrirLesDefis);
     $('bouton-theme').addEventListener('click', tournerLeMonde);
     $('bouton-son').addEventListener('click', () => {
         preferences.sons = !preferences.sons;
@@ -465,10 +652,20 @@ function brancherInterface() {
         annoncer(preferences.sons ? 'Son rétabli.' : 'Son coupé.');
     });
 
+    $('bouton-defi-echeveau').addEventListener('click', () => { $('dialogue-defis').close(); partieDuJour(); });
+    $('bouton-defi-montee').addEventListener('click', () => { $('dialogue-defis').close(); monteeDuJour(); });
+    $('bouton-continuer').addEventListener('click', () => $('dialogue-palier').close());
+    $('dialogue-palier').addEventListener('close', continuerLaMontee);
     $('bouton-annuler').addEventListener('click', annulerUnGeste);
     $('bouton-indice').addEventListener('click', demanderUnIndice);
     $('bouton-nouvelle').addEventListener('click', () => partieLibre());
-    $('bouton-suivante').addEventListener('click', () => { $('dialogue-fin').close(); partieLibre(); });
+    $('bouton-suivante').addEventListener('click', () => {
+        $('dialogue-fin').close();
+        // Une montée bouclée en rappelle une autre : le bouton relance le même
+        // mode, pas la préférence d’avant.
+        if (meta.mode === MODE_MONTEE) { lancerMontee(graineLibre(), null); return; }
+        partieLibre();
+    });
     $('bouton-partager').addEventListener('click', partager);
     $('bouton-generateur').addEventListener('click', basculerGenerateur);
     $('bouton-effacer-stats').addEventListener('click', () => {
@@ -503,18 +700,53 @@ function brancherInterface() {
 
 // ── Départ ────────────────────────────────────────────────────────────────
 
+// Une sauvegarde d’avant la 1.2.0 n’a pas de champ `mode` : elle se relit
+// comme une grille, ce qu’elle est. Rien à migrer.
+const memesVariantes = (sauvegarde, demandee) =>
+    VARIANTES_IDS.every(id => Boolean(sauvegarde.variantes?.[id]) === demandee.variantes[id]);
+
 function partieDeDepart() {
     const demandee = lireParametres(location.search);
     const sauvegarde = chargerPartie();
+
+    if (demandee?.mode === MODE_MONTEE) {
+        const reprise = sauvegarde?.mode === MODE_MONTEE && sauvegarde.graine === demandee.graine
+            && memesVariantes(sauvegarde, demandee)
+            ? restaurerMontee(sauvegarde.montee) : null;
+        montee = reprise && !estAchevee(reprise) ? reprise : monteeNeuve(demandee.graine);
+        demarrer(demandee, reprise && sauvegarde.partie ? sauvegarde : null);
+        return;
+    }
     if (demandee) {
-        const memeGrille = sauvegarde && sauvegarde.graine === demandee.graine
+        montee = null;
+        const memeGrille = sauvegarde && sauvegarde.mode !== MODE_MONTEE
+            && sauvegarde.graine === demandee.graine
             && sauvegarde.niveau === demandee.niveau
-            && VARIANTES_IDS.every(id => Boolean(sauvegarde.variantes?.[id]) === demandee.variantes[id]);
+            && memesVariantes(sauvegarde, demandee);
         demarrer(demandee, memeGrille ? sauvegarde : null);
         return;
     }
-    if (sauvegarde && sauvegarde.graine) {
+
+    // Une montée interrompue se reprend au palier où elle en était, avec le
+    // temps déjà couru : fermer l’onglet ne coûte rien, pas même un parcours.
+    if (sauvegarde?.mode === MODE_MONTEE) {
+        const reprise = restaurerMontee(sauvegarde.montee);
+        if (reprise && !estAchevee(reprise)) {
+            montee = reprise;
+            demarrer({
+                mode: MODE_MONTEE, graine: montee.graine, niveau: palierCourant(montee),
+                dateJour: sauvegarde.dateJour || null,
+                quotidien: Boolean(sauvegarde.quotidien) && sauvegarde.dateJour === dateLocale(),
+                variantes: variantesDepuis(sauvegarde.variantes || {})
+            }, sauvegarde.partie ? sauvegarde : null);
+            return;
+        }
+    }
+
+    montee = null;
+    if (sauvegarde && sauvegarde.graine && sauvegarde.mode !== MODE_MONTEE) {
         demarrer({
+            mode: MODE_GRILLE,
             graine: sauvegarde.graine,
             niveau: NIVEAUX[sauvegarde.niveau] ? sauvegarde.niveau : preferences.niveau,
             dateJour: sauvegarde.dateJour || null,
@@ -548,7 +780,7 @@ setInterval(() => {
         partie: nomDeLaPartie(),
         croisements: croisementsAffiches,
         touches: etat.touches.length,
-        temps: tempsActuel(),
+        temps: tempsAffiche(),
         termine
     });
     sauvegarder();

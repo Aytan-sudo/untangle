@@ -150,8 +150,11 @@ check('les quatre mondes se rangent en grille',
 check('chaque bouton de niveau annonce sa taille',
     Object.values(NIVEAUX).every(niveau => entreesNiveaux()
         .some(entree => entree.id === niveau.id && entree.nom.includes(String(niveau.sommets)))));
-check('aucun niveau ne dépasse la dizaine de sommets',
-    Object.values(NIVEAUX).every(niveau => niveau.sommets >= 4 && niveau.sommets <= 9),
+// La limite a bougé en 1.2.0 — les joueurs trouvaient quatre modes trop peu —
+// mais elle existe toujours : les trente-quatre sommets de la 1.0.0 restent
+// une erreur d’échelle, et rien ne doit pouvoir y ramener par inadvertance.
+check('aucun niveau ne dépasse la treizaine de sommets',
+    Object.values(NIVEAUX).every(niveau => niveau.sommets >= 4 && niveau.sommets <= 13),
     Object.values(NIVEAUX).map(niveau => niveau.sommets).join(' '));
 
 // ── Mobile d’abord ────────────────────────────────────────────────────────

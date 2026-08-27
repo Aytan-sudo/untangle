@@ -3,6 +3,7 @@
 
 import { NIVEAU_QUOTIDIEN } from './config.js';
 import { NIVEAUX } from './generateur.js';
+import { MODE_GRILLE, MODE_MONTEE, MONTEE, PALIERS, courbeDeMontee } from './montee.js';
 import { IDS as VARIANTES_PARTAGEES } from './variantes.js';
 
 export function dateLocale(date = new Date()) {
@@ -27,28 +28,57 @@ export function formaterTemps(millisecondes) {
 // L’aimant n’est pas du lot : c’est un confort de doigt, il ne regarde que
 // son joueur et ne change pas la grille.
 
-// Le défi du jour se joue en version canonique : personne ne compare un
+// Les deux défis du jour se lisent au même endroit :
+//
+//   ?jour=AAAA-MM-JJ     l’Écheveau du jour
+//   ?montee=AAAA-MM-JJ   la Montée du jour
+//   ?montee=<graine>     une montée libre partagée
+//   ?seed=<graine>&…     une grille libre partagée
+//
+// `?montee=` porte donc une date ou une graine, et `estUneDate` tranche —
+// c’est l’idiome déjà en place pour `jour` et `seed`, et il évite un second
+// paramètre qui pourrait contredire le premier.
+//
+// Un défi du jour se joue en version canonique : personne ne compare un
 // écheveau épinglé à un écheveau nu.
+const SANS_VARIANTE = { epingles: false, cercle: false, aveugle: false };
+
 export function lireParametres(recherche, aujourdhui = dateLocale()) {
     const parametres = new URLSearchParams(recherche || '');
     const jour = parametres.get('jour');
     if (estUneDate(jour)) {
         return {
+            mode: MODE_GRILLE,
             graine: jour, niveau: NIVEAU_QUOTIDIEN, dateJour: jour,
             quotidien: jour === aujourdhui,
-            variantes: { epingles: false, cercle: false, aveugle: false }
+            variantes: { ...SANS_VARIANTE }
         };
     }
+    const drapeaux = (parametres.get('v') || '').split(',').filter(Boolean);
+    const variantes = Object.fromEntries(VARIANTES_PARTAGEES.map(nom => [nom, drapeaux.includes(nom)]));
+
+    const montee = parametres.get('montee');
+    if (montee) {
+        const duJour = estUneDate(montee);
+        return {
+            mode: MODE_MONTEE,
+            graine: montee, niveau: PALIERS[0],
+            dateJour: duJour ? montee : null,
+            quotidien: duJour && montee === aujourdhui,
+            variantes: duJour ? { ...SANS_VARIANTE } : variantes
+        };
+    }
+
     const graine = parametres.get('seed');
     if (!graine) return null;
     const niveau = parametres.get('niveau');
-    const drapeaux = (parametres.get('v') || '').split(',').filter(Boolean);
     return {
+        mode: MODE_GRILLE,
         graine,
         niveau: NIVEAUX[niveau] ? niveau : NIVEAU_QUOTIDIEN,
         dateJour: null,
         quotidien: false,
-        variantes: Object.fromEntries(VARIANTES_PARTAGEES.map(nom => [nom, drapeaux.includes(nom)]))
+        variantes
     };
 }
 
@@ -56,12 +86,16 @@ export function lienDePartage(base, meta) {
     const url = new URL(base);
     url.search = '';
     url.hash = '';
+    const enMontee = meta.mode === MODE_MONTEE;
     if (meta.dateJour) {
-        url.searchParams.set('jour', meta.dateJour);
+        url.searchParams.set(enMontee ? 'montee' : 'jour', meta.dateJour);
         return url.href;
     }
-    url.searchParams.set('seed', meta.graine);
-    url.searchParams.set('niveau', meta.niveau);
+    if (enMontee) url.searchParams.set('montee', meta.graine);
+    else {
+        url.searchParams.set('seed', meta.graine);
+        url.searchParams.set('niveau', meta.niveau);
+    }
     const actives = VARIANTES_PARTAGEES.filter(nom => meta.variantes?.[nom]);
     if (actives.length) url.searchParams.set('v', actives.join(','));
     return url.href;
@@ -80,17 +114,24 @@ export function courbeEnEmojis(courbe) {
     }).join('');
 }
 
-export function messageDePartage({ base, meta, termine, tempsMs, touches, indices, courbe }) {
-    const nomNiveau = NIVEAUX[meta.niveau]?.nom || meta.niveau;
+// Le partage d’une montée dit les six paliers plutôt que la courbe des
+// croisements d’une grille : à l’échelle du parcours, ce qui raconte quelque
+// chose, c’est où l’aide a été nécessaire.
+export function messageDePartage({ base, meta, termine, tempsMs, touches, indices, courbe, montee = null }) {
+    const enMontee = meta.mode === MODE_MONTEE;
+    const nomNiveau = enMontee ? `${MONTEE.nom} 4→13` : (NIVEAUX[meta.niveau]?.nom || meta.niveau);
     const actives = VARIANTES_PARTAGEES.filter(nom => meta.variantes?.[nom]);
     const entete = meta.dateJour
         ? `Untangle ${formaterDate(meta.dateJour)} · ${nomNiveau}`
         : `Untangle · ${nomNiveau}`;
     const lignes = [actives.length ? `${entete} (${actives.join(', ')})` : entete];
     if (termine) {
-        lignes.push(`Démêlé en ${formaterTemps(tempsMs)} · ${touches} sommet${touches > 1 ? 's' : ''} touché${touches > 1 ? 's' : ''}`);
+        const verbe = enMontee ? 'Bouclée' : 'Démêlé';
+        lignes.push(`${verbe} en ${formaterTemps(tempsMs)} · ${touches} sommet${touches > 1 ? 's' : ''} touché${touches > 1 ? 's' : ''}`);
         lignes.push(indices ? `${indices} indice${indices > 1 ? 's' : ''}` : 'Sans indice ✦');
-        lignes.push(courbeEnEmojis(courbe));
+        lignes.push(enMontee && montee ? courbeDeMontee(montee) : courbeEnEmojis(courbe));
+    } else if (enMontee && montee) {
+        lignes.push(`Six paliers, du Fil au Dédale. ${courbeDeMontee(montee)}`);
     } else {
         lignes.push('Un écheveau, zéro croisement à trouver. À vous.');
     }

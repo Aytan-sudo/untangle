@@ -9,17 +9,28 @@ import {
     estTriconnexe, unSommetReposeSurUnFil
 } from './graphe.js';
 
-// Quatre tailles, de la poignée de sommets à la petite dizaine. Au-delà, ce
-// n’est plus un jeu de réflexion mais un jeu de patience contre l’écran : les
-// sommets deviennent des têtes d’épingle et le plateau un plat de spaghettis.
-// Les paliers suivent le nombre de croisements au départ, qui double à peu
-// près à chaque niveau — c’est lui, et non le nombre de sommets, qui fait la
-// difficulté ressentie.
+// Six tailles, de la poignée de sommets à la petite treizaine. Les paliers
+// suivent le nombre de croisements au départ, qui monte de moitié à chaque
+// niveau — c’est lui, et non le nombre de sommets, qui fait la difficulté
+// ressentie : 1, 5, 9, 12, 20, 33 en moyenne.
+//
+// La 1.1.0 s’était arrêtée à neuf, au motif qu’au-delà le jeu devenait une
+// partie de patience contre l’écran. Les joueurs ont demandé plus haut, et à
+// treize c’est encore jouable au doigt : vingt-six fils sur un plateau de
+// téléphone, des sommets qui se frôlent parfois sans jamais se confondre. La
+// limite n’a pas disparu, elle a bougé — trente-quatre sommets, l’échelle de
+// la 1.0.0, reste une erreur.
+//
+// `feminin` n’est pas de la décoration : la Montée écrit « Toile démêlée » et
+// « Écheveau démêlé », et cinq masculins sur six ne dispensent pas d’accorder
+// le sixième. C’est une propriété du mot, elle vit avec lui.
 export const NIVEAUX = {
     fil: { id: 'fil', nom: 'Fil', sommets: 4 },
     noeud: { id: 'noeud', nom: 'Nœud', sommets: 5 },
     echeveau: { id: 'echeveau', nom: 'Écheveau', sommets: 7 },
-    toile: { id: 'toile', nom: 'Toile', sommets: 9 }
+    toile: { id: 'toile', nom: 'Toile', sommets: 9, feminin: true },
+    lacis: { id: 'lacis', nom: 'Lacis', sommets: 11 },
+    dedale: { id: 'dedale', nom: 'Dédale', sommets: 13 }
 };
 
 // Fils par sommet visés après élagage. À ces tailles, la contrainte de
@@ -146,9 +157,14 @@ export function choisirEpingles(alea, solution, nombre) {
     return choisis.sort((a, b) => a - b);
 }
 
+// Une épingle pour quatre ou cinq sommets, jusqu’à quatre pour le Dédale.
+// Le nombre suit la taille : trois ancres perdues dans treize sommets
+// n’ancreraient plus grand-chose, et la variante n’aurait plus d’effet là où
+// elle serait le plus utile.
 export function nombreEpingles(nombreSommets) {
     if (nombreSommets <= 5) return 1;
-    return nombreSommets <= 7 ? 2 : 3;
+    if (nombreSommets <= 7) return 2;
+    return nombreSommets <= 9 ? 3 : 4;
 }
 
 function disperser(alea, nombre, cercle) {

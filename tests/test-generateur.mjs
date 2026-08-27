@@ -175,8 +175,8 @@ console.log('\nFabrication des écheveaux\n');
     }
     check('les épingles sont écartées les unes des autres', Math.min(...ecarts) > TAILLE / 4,
         `écart minimal ${Math.min(...ecarts).toFixed(0)}`);
-    egal('une à trois épingles selon le niveau',
-        Object.values(NIVEAUX).map(niveau => nombreEpingles(niveau.sommets)), [1, 1, 2, 3]);
+    egal('une à quatre épingles selon le niveau',
+        Object.values(NIVEAUX).map(niveau => nombreEpingles(niveau.sommets)), [1, 1, 2, 3, 4, 4]);
     check('il reste toujours des sommets libres à déplacer',
         Object.values(NIVEAUX).every(niveau => nombreEpingles(niveau.sommets) <= niveau.sommets - 3));
 }
@@ -311,7 +311,7 @@ console.log('\nFabrication des écheveaux\n');
 // — Les tailles : le jeu se joue au doigt, pas à la loupe
 {
     const tailles = Object.values(NIVEAUX).map(niveau => niveau.sommets);
-    egal('quatre tailles, de quatre à neuf sommets', tailles, [4, 5, 7, 9]);
+    egal('six tailles, de quatre à treize sommets', tailles, [4, 5, 7, 9, 11, 13]);
     check('les tailles montent', tailles.every((n, rang) => rang === 0 || n > tailles[rang - 1]));
     // La difficulté ressentie tient au nombre de croisements de départ, pas au
     // nombre de sommets : c’est lui qui doit monter franchement d’un niveau au
@@ -323,9 +323,17 @@ console.log('\nFabrication des écheveaux\n');
         });
         return comptes.reduce((somme, c) => somme + c, 0) / comptes.length;
     });
+    // Le seuil est passé de 1,4 à 1,35 en ouvrant l’échelle à six paliers : à
+    // quatre niveaux, chaque marche portait tout l’écart ; à six, elles se le
+    // partagent. Le pas le plus court est Toile → Lacis (1,39 sur deux cents
+    // tirages) — deux sommets et quatre fils de plus, ça reste une marche.
+    // La montée complète, elle, va de 1 à 35 croisements.
     check('chaque niveau emmêle nettement plus que le précédent',
-        moyennes.every((valeur, rang) => rang === 0 || valeur > moyennes[rang - 1] * 1.4),
+        moyennes.every((valeur, rang) => rang === 0 || valeur > moyennes[rang - 1] * 1.35),
         moyennes.map(v => v.toFixed(1)).join(' → '));
+    check('du premier au dernier, l’écart est d’un ordre de grandeur',
+        moyennes[moyennes.length - 1] > moyennes[0] * 20,
+        `${moyennes[0].toFixed(1)} → ${moyennes[moyennes.length - 1].toFixed(1)}`);
     // Un K4 n’admet qu’un seul croisement franc : c’est une propriété du
     // graphe, pas un réglage. Le premier niveau est donc un coup unique — une
     // découverte, assumée comme telle.

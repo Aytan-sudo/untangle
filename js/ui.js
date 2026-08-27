@@ -3,6 +3,7 @@
 
 import { formaterDate, formaterTemps } from './defi.js';
 import { NIVEAUX } from './generateur.js';
+import { MODE_GRILLE, MODE_MONTEE, MONTEE, PALIERS } from './montee.js';
 import { THEMES } from './themes.js';
 import { VARIANTES } from './variantes.js';
 
@@ -40,6 +41,15 @@ export function marquerChoix(conteneur, valeur, attribut = 'valeur') {
 
 export const entreesNiveaux = () => Object.values(NIVEAUX).map(niveau =>
     ({ id: niveau.id, nom: `${niveau.nom} · ${niveau.sommets}` }));
+
+// Le mode n’est pas une taille : « Une grille » et « La Montée » choisissent
+// ce qu’on lance, les six tailles choisissent quoi. Deux groupes, deux
+// questions — les mêler ferait un septième bouton de taille qui n’en est pas
+// une, et le joueur ne saurait plus ce qu’il coche.
+export const entreesModes = () => [
+    { id: MODE_GRILLE, nom: 'Une grille' },
+    { id: MODE_MONTEE, nom: `La ${MONTEE.nom}` }
+];
 
 // Les quatre mondes seulement : « du jour » est une case à cocher, pas un
 // cinquième bouton. Cinq boutons pour une grille de quatre laissaient le
@@ -79,9 +89,17 @@ export async function copier(texte) {
 
 const NOMS_VARIANTES = Object.fromEntries(VARIANTES.map(variante => [variante.id, variante.court]));
 
+// La montée n’est pas dans `NIVEAUX` — c’est un mode — mais sa clé de
+// palmarès a la même forme que celle d’une taille. Sans cette entrée, le
+// tableau des records afficherait la clé brute « montee+cercle ».
+const NOMS_CONFIGURATIONS = {
+    ...Object.fromEntries(Object.values(NIVEAUX).map(niveau => [niveau.id, niveau.nom])),
+    [MONTEE.id]: MONTEE.nom
+};
+
 export function libelleConfiguration(cle) {
     const [niveau, ...variantes] = cle.split('+');
-    const nom = NIVEAUX[niveau]?.nom || niveau;
+    const nom = NOMS_CONFIGURATIONS[niveau] || niveau;
     return variantes.length ? `${nom} · ${variantes.map(id => NOMS_VARIANTES[id] || id).join(', ')}` : nom;
 }
 
@@ -89,16 +107,25 @@ function bloc(titre, valeur) {
     return `<div><span>${titre}</span><strong>${valeur}</strong></div>`;
 }
 
+function blocsDeSerie(titre, serie = {}) {
+    return `<h3>${titre}</h3><div class="serie">${
+        bloc('Série', serie.serie || 0)
+    }${bloc('Record', serie.meilleureSerie || 0)
+    }${bloc('Réussis', (serie.reussis || []).length)}</div>`;
+}
+
 export function rendreStatistiques(stats, { classement }) {
-    const quotidien = stats.quotidien || {};
     const configurations = Object.entries(stats.configurations || {})
         .sort(([a], [b]) => a.localeCompare(b));
     const economie = classement === 'economie';
 
-    const morceaux = [`<div class="serie">${
-        bloc('Série', quotidien.serie || 0)
-    }${bloc('Record', quotidien.meilleureSerie || 0)
-    }${bloc('Défis', (quotidien.reussis || []).length)}</div>`];
+    // Deux séries côte à côte plutôt qu’une : l’Écheveau du jour et la Montée
+    // du jour sont deux habitudes de longueurs très différentes, et une série
+    // commune se serait cassée chaque fois qu’on n’a eu que deux minutes.
+    const morceaux = [
+        blocsDeSerie('L’Écheveau du jour', stats.quotidien),
+        blocsDeSerie(`La ${MONTEE.nom} du jour`, stats.quotidienMontee)
+    ];
 
     if (!configurations.length) {
         morceaux.push('<p class="note">Aucun écheveau démêlé pour l’instant. Le premier fera le premier record.</p>');
@@ -127,4 +154,47 @@ export function rendreStatistiques(stats, { classement }) {
     }
 
     $('stats-corps').innerHTML = morceaux.join('');
+}
+
+// ── Les défis du jour ─────────────────────────────────────────────────────
+// Deux défis, un seul bouton dans la barre : à cinq boutons de 44 px elle est
+// déjà pleine sur un iPhone SE, et un sixième chasserait le titre. Le bouton
+// ouvre donc un panneau qui présente les deux, avec leur série et une coche
+// pour celui qui est déjà tombé aujourd’hui.
+
+// Les deux cartes sont dans la page, pas fabriquées ici : un bouton posé en
+// dur est un bouton que la vérification structurelle voit, dont l’écouteur se
+// branche une fois, et qui ne disparaît pas si ce module change d’avis.
+export function rendreDefis(jour, stats) {
+    $('defis-date').textContent = formaterDate(jour);
+    const cartes = [
+        ['echeveau', stats.quotidien, 'Jouer'],
+        ['montee', stats.quotidienMontee, 'Monter']
+    ];
+    for (const [id, serie, verbe] of cartes) {
+        const fait = (serie?.reussis || []).includes(jour);
+        $(`defi-${id}-fait`).hidden = !fait;
+        const reussis = (serie?.reussis || []).length;
+        $(`defi-${id}-serie`).textContent =
+            `Série de ${serie?.serie || 0} · record ${serie?.meilleureSerie || 0} · ${reussis} réussi${reussis > 1 ? 's' : ''}`;
+        const bouton = $(`bouton-defi-${id}`);
+        bouton.textContent = fait ? 'Rejouer' : verbe;
+        // Le défi qui reste à faire porte l’accent : c’est celui qu’on est
+        // venu chercher.
+        bouton.classList.toggle('outil--fort', !fait);
+    }
+}
+
+// Le fil d’Ariane de la montée : six pastilles, celle du palier en cours en
+// relief. Six mots ne tiendraient pas sur la largeur d’un téléphone ; six
+// pastilles numérotées, si — et elles disent d’un coup d’œil où l’on en est.
+export function rendreEchelle(conteneur, montee) {
+    conteneur.innerHTML = PALIERS.map((id, rang) => {
+        const etat = rang < montee.franchis.length ? 'franchi'
+            : (rang === montee.rang ? 'courant' : 'a-venir');
+        return `<span class="palier palier--${etat}" title="${NIVEAUX[id].nom} · ${NIVEAUX[id].sommets} sommets">`
+            + `${NIVEAUX[id].sommets}</span>`;
+    }).join('');
+    conteneur.setAttribute('aria-label',
+        `Montée : palier ${Math.min(montee.rang + 1, PALIERS.length)} sur ${PALIERS.length}, ${NIVEAUX[PALIERS[montee.rang]].nom}.`);
 }

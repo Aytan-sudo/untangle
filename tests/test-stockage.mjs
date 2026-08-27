@@ -86,7 +86,7 @@ function coffreDeTest() {
     coffreDeTest();
     enregistrerVictoire({ niveau: 'fil', variantes: {}, tempsMs: 1000, touches: 2, gestes: 2, indices: 0 });
     egal('le palmarès vide n’est pas contaminé par une victoire', statistiquesVides(),
-        { configurations: {}, quotidien: {}, historique: [] });
+        { configurations: {}, quotidien: {}, quotidienMontee: {}, historique: [] });
 }
 
 // — Palmarès

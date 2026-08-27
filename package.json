@@ -1,12 +1,12 @@
 {
   "name": "untangle",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "private": true,
   "description": "Démêlez un graphe planaire : tirez les sommets jusqu’à ce qu’aucun fil n’en croise un autre.",
   "type": "module",
   "scripts": {
-    "test": "node tests/test-graphe.mjs && node tests/test-generateur.mjs && node tests/test-partie.mjs && node tests/test-entree.mjs && node tests/test-defi.mjs && node tests/test-son.mjs && node tests/test-stockage.mjs && node tests/test-page.mjs",
-    "check": "node --check js/app.js && node --check js/config.js && node --check js/defi.js && node --check js/entree.js && node --check js/generateur.js && node --check js/graphe.js && node --check js/hasard.js && node --check js/partie.js && node --check js/rendu.js && node --check js/son.js && node --check js/stockage.js && node --check js/themes.js && node --check js/ui.js && node --check js/variantes.js",
+    "test": "node tests/test-graphe.mjs && node tests/test-generateur.mjs && node tests/test-partie.mjs && node tests/test-montee.mjs && node tests/test-entree.mjs && node tests/test-defi.mjs && node tests/test-son.mjs && node tests/test-stockage.mjs && node tests/test-page.mjs",
+    "check": "node --check js/app.js && node --check js/config.js && node --check js/defi.js && node --check js/entree.js && node --check js/generateur.js && node --check js/graphe.js && node --check js/hasard.js && node --check js/montee.js && node --check js/partie.js && node --check js/rendu.js && node --check js/son.js && node --check js/stockage.js && node --check js/themes.js && node --check js/ui.js && node --check js/variantes.js",
     "serve": "python3 -m http.server 8768"
   }
 }

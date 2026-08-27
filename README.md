@@ -7,12 +7,19 @@ hors ligne, sans serveur ni dépendance.
 Rien à deviner, rien à perdre, aucun coup irréversible : il n’y a qu’un nœud,
 et il finit toujours par céder.
 
-## Version 1.1.1
+## Version 1.2.0
 
-- les cibles tactiles de l'interface passent à 44 px (boutons d'en-tête,
-  boutons texte, listes déroulantes), conformément à la convention.
-- le test des cibles tactiles vérifie désormais la règle (≥ 44 px) au lieu de
-  figer l'ancienne valeur de 40 px.
+- **deux tailles de plus** : Lacis (11 sommets) et Dédale (13). Quatre modes,
+  disaient les joueurs, c’est trop peu.
+- **la Montée** : les six tailles enchaînées, du Fil au Dédale, sous un seul
+  chronomètre. Aucune vie, aucune défaite, une reprise exacte.
+- **deux défis du jour** : l’Écheveau du jour et la Montée du jour, chacun avec
+  sa série. Le bouton `◉` ouvre le panneau des deux.
+- l’indice ne se consomme plus quand il n’a rien à dégager.
+- trois correctifs d’interface trouvés en capture : le titre passait sous les
+  boutons de la barre (illisible dès 393 px, invisible à 320), les libellés des
+  compteurs se chevauchaient sur petit écran, et le bouton × des dialogues
+  faisait 36 px au lieu de 44.
 
 ## La particularité : le dessin est unique
 
@@ -73,25 +80,62 @@ fin). Puis `N` nouvelle partie, `R` relancer la même, `T` monde, `U` ou
 
 ## Les écheveaux
 
-| Niveau | Sommets | Fils | Croisements au départ |
+| Niveau | Sommets | Fils | Croisements au départ (moyenne) |
 | --- | --- | --- | --- |
 | Fil | 4 | 6 | 1 |
 | Nœud | 5 | 8 à 9 | 5 |
-| Écheveau | 7 | 13 | 5 à 13 |
-| Toile | 9 | 18 | 7 à 17 |
+| Écheveau | 7 | 13 à 14 | 9 |
+| Toile | 9 | 18 | 13 |
+| Lacis | 11 | 22 | 19 |
+| Dédale | 13 | 26 | 35 |
 
 C’est le nombre de croisements, et non le nombre de sommets, qui fait la
-difficulté ressentie : il double à peu près d’un niveau au suivant, et un test
-le vérifie. Le premier niveau tient en un seul geste — un graphe planaire
-3-connexe à quatre sommets ne peut être que K4, et un K4 mal dessiné n’admet
-jamais qu’un croisement. C’est une propriété du graphe, pas un réglage : Fil
-est une découverte, pas une épreuve.
+difficulté ressentie : il monte au moins de moitié d’un niveau au suivant, et
+un test le vérifie. Le pas le plus court est Toile → Lacis, à 1,39 ; du Fil au
+Dédale, l’écart est de trente-cinq pour un.
 
-Le **défi du jour** se joue en Écheveau, en version canonique. La graine est la
-date : la même grille pour tout le monde, refabriquée chez chacun, sans qu’un
-octet ne circule. La série ne compte que le défi joué le jour même ; un lien
-rouvert plus tard redonne la grille, hors série. L’horloge de la machine fait
-foi — se tricher soi-même est possible, et sans intérêt.
+Le premier niveau tient en un seul geste — un graphe planaire 3-connexe à
+quatre sommets ne peut être que K4, et un K4 mal dessiné n’admet jamais qu’un
+croisement. C’est une propriété du graphe, pas un réglage : Fil est une
+découverte, pas une épreuve.
+
+## La Montée
+
+Les six tailles d’affilée, du Fil au Dédale, **sous un seul chronomètre qui ne
+s’arrête pas entre les grilles**. Quarante-neuf sommets en tout, six paliers,
+une ligne d’arrivée.
+
+Il n’y a **ni vie, ni sablier, ni défaite** : on ne peut pas rater un palier,
+seulement mettre du temps à le passer. C’est délibéré — Untangle est un jeu où
+l’on ne perd pas, et lui inventer une perte pour l’occasion l’aurait trahi. La
+tension vient de l’horloge, et de l’envie d’arriver sans indice.
+
+Une graine par montée, dérivée pour chaque palier (`graine|montee|lacis`) :
+deux montées voisines n’ont aucune grille en commun, et la même graine redonne
+exactement la même série. Une montée interrompue **se reprend au palier où elle
+en était, avec son temps déjà couru** ; `R` remet le palier à plat sans rendre
+les secondes, sans quoi la touche serait un bouton « effacer le chronomètre ».
+Le palmarès de la Montée est distinct de celui des tailles : un temps total sur
+quarante-neuf sommets ne concourt pas contre un temps sur sept.
+
+## Les deux défis du jour
+
+Le bouton `◉` ouvre les deux, avec leurs séries :
+
+- **l’Écheveau du jour** — une grille de sept sommets, deux minutes ;
+- **la Montée du jour** — les six paliers, un quart d’heure.
+
+Chacun a **sa propre série** : réussir la Montée ne prolonge pas celle de
+l’Écheveau. Une habitude de deux minutes et une de quinze n’ont pas la même
+régularité, et une série commune se serait cassée chaque fois qu’on n’a eu que
+deux minutes.
+
+Les deux se jouent en version canonique. La graine est la date : la même grille
+pour tout le monde, refabriquée chez chacun, sans qu’un octet ne circule
+(`?jour=AAAA-MM-JJ`, `?montee=AAAA-MM-JJ`). La série ne compte que le défi joué
+le jour même ; un lien rouvert plus tard redonne la grille, hors série.
+L’horloge de la machine fait foi — se tricher soi-même est possible, et sans
+intérêt.
 
 ## Les variantes
 
@@ -99,8 +143,9 @@ Trois axes indépendants, qui se combinent librement. Chaque combinaison a son
 propre palmarès : un temps en écheveau épinglé ne concourt pas contre un temps
 en écheveau nu.
 
-- **Sommets épinglés** — un à trois sommets, selon la taille, sont posés
-  d’avance à leur place et refusent de bouger. Le démêlage doit s’organiser autour d’eux.
+- **Sommets épinglés** — un à quatre sommets, selon la taille, sont posés
+  d’avance à leur place et refusent de bouger. Le démêlage doit s’organiser
+  autour d’eux.
 - **Départ en cercle** — tous les sommets commencent sur un cercle, comme un
   diagramme de cordes. Très lisible, très intimidant.
 - **À l’aveugle** — les fils fautifs ne se signalent plus ; seul le compteur de
@@ -142,6 +187,7 @@ faut un serveur.
 js/graphe.js      croisements, connexité, 3-connexité — de la géométrie pure
 js/generateur.js  fabrication d’un écheveau : semis, triangulation, élagage, brouillage
 js/partie.js      positions, annulation, sommets touchés, courbe des croisements
+js/montee.js      les six paliers, le chronomètre du parcours, sa reprise
 js/rendu.js       le SVG, et rien d’autre — aucune règle du jeu
 js/entree.js      doigt, souris, clavier
 js/hasard.js      le hasard reproductible
@@ -179,6 +225,22 @@ Ce n’en était pas une évidence. Comme un sommet posé sur un fil compte pour
 croisement, la première version — qui retenait, à défaut de seuil atteignable,
 la disposition la plus embrouillée de toutes — allait systématiquement chercher
 les cas dégénérés. Invisible à trois cents croisements, ruineux à trois.
+
+**La Montée.** Un module à part, sans DOM ni horloge : on lui verse le résultat
+d’un palier, il dit lequel vient ensuite. Il ne garde pas de total — le temps,
+les sommets et les indices se recomposent en additionnant les paliers franchis,
+ce qui évite d’avoir deux compteurs à tenir d’accord. Le rang, lui, **se déduit
+des paliers réellement franchis plutôt que de se lire** : un `rang: 5` bricolé
+dans le stockage offrirait sinon le Dédale d’emblée, avec le temps d’un seul
+palier au compteur.
+
+Deux détails qui ne se voient qu’en jouant. Le panneau entre deux paliers est
+une étape, pas une fenêtre qu’on écarte : le fermer par la croix laissait le
+joueur devant une grille déjà démêlée, sans indice, sans annulation et sans
+bouton pour avancer — toute fermeture enchaîne donc sur le palier suivant. Et
+`R` reporte le temps déjà passé sur le palier qu’il relance, sans quoi il
+serait un bouton « effacer le chronomètre » au milieu du seul mode qui n’a que
+le chronomètre pour tension.
 
 **Le croisement.** Deux fils sont en conflit s’ils se traversent, se frôlent, ou
 si le sommet libre de l’un repose sur l’autre. Un sommet posé *sur* un fil
@@ -232,18 +294,35 @@ les caches.
   l’écran. Un plateau qu’on peut fuir des yeux n’est plus un plateau.
 - **Pas d’auto-démêlage, pas de « ranger le graphe ».** Un bouton qui applique
   quelques itérations de force dirigée résoudrait la grille à votre place en
-  l’appelant une aide. L’indice, lui, déplace **un** sommet — le plus empêtré —
-  et la partie cesse aussitôt de concourir.
-- **Pas de niveaux au-delà de neuf sommets.** Au-delà, ce n’est plus un jeu de
-  réflexion mais un jeu de patience contre l’écran : les sommets deviennent des
-  têtes d’épingle et le plateau un plat de spaghettis. La première version en
-  proposait jusqu’à trente-quatre ; c’était une erreur d’échelle, corrigée en
-  1.1.0.
+  l’appelant une aide. L’indice, lui, déplace **un** sommet — celui dont le
+  déplacement fait tomber le plus de croisements — et la partie cesse aussitôt
+  de concourir. C’est un conseil local, pas un solveur : à onze ou treize
+  sommets, il arrive qu’aucun sommet n’ait de meilleure place alors que le
+  plateau est encore emmêlé. Il rend alors la main **sans se consommer** — la
+  partie reste au palmarès, et le détour reste à trouver.
+- **Pas de niveaux au-delà de treize sommets.** La 1.1.0 s’était arrêtée à
+  neuf ; les joueurs trouvaient quatre modes trop peu, et à treize c’est encore
+  jouable au doigt — vingt-six fils sur un plateau de téléphone, des sommets
+  qui se frôlent parfois sans jamais se confondre. La limite a bougé, elle n’a
+  pas disparu : la 1.0.0 proposait jusqu’à trente-quatre sommets, et ça reste
+  une erreur d’échelle.
+- **Pas de défaite dans la Montée.** Ni vies, ni sablier, ni palier à refaire.
+  On ne peut pas perdre une grille d’Untangle ; un mode qui le permettrait
+  serait un autre jeu.
 - **Pas de compte, pas de classement en ligne, pas de télémétrie.** Aucun octet
   ne quitte la machine.
 
 ## Journal
 
+- **1.2.0** — six tailles et la Montée. Lacis (11) et Dédale (13) rejoignent
+  l’échelle : quatre modes, c’était trop peu. La Montée les enchaîne tous les
+  six sous un chronomètre unique, et le défi du jour se dédouble — l’Écheveau
+  et la Montée, chacun sa série. Trois écarts d’interface corrigés au passage,
+  tous trouvés en regardant une capture d’iPhone plutôt qu’un test vert : le
+  titre passait sous les boutons de la barre, les libellés des compteurs se
+  chevauchaient à 320 px, et le × des dialogues faisait 36 px.
+- **1.1.1** — les cibles tactiles de l’interface passent à 44 px, et le test
+  vérifie la règle au lieu de figer l’ancienne valeur.
 - **1.1.0** — la bonne échelle. Les niveaux passent de 10–34 sommets à 4–9 :
   la première version était un jeu de patience contre l’écran. Le brouillage
   est encadré par une fourchette et refuse les dispositions dégénérées, le

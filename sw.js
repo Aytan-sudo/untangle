@@ -6,7 +6,7 @@
 // et des caches. Un jeu cache-first y sert alors ses propres fichiers aux
 // autres — le préfixe des clés protège les données, rien ne protège les
 // fichiers.
-const VERSION = 'untangle-1.1.1';
+const VERSION = 'untangle-1.2.0';
 const COQUILLE = [
     './',
     'index.html',
@@ -21,6 +21,7 @@ const COQUILLE = [
     'js/generateur.js',
     'js/graphe.js',
     'js/hasard.js',
+    'js/montee.js',
     'js/partie.js',
     'js/rendu.js',
     'js/son.js',

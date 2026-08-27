@@ -8,6 +8,10 @@ const memoire = new Map();
 let coffre;
 
 export const PREFERENCES_PAR_DEFAUT = {
+    // Le mode : une grille seule, ou la Montée qui enchaîne les six tailles.
+    // C’est une préférence et pas une variante — il ne se combine avec rien,
+    // il choisit ce qu’on lance.
+    mode: 'grille',
     niveau: 'echeveau',
     theme: 'auto',
     sons: true,
@@ -29,7 +33,18 @@ export const PREFERENCES_PAR_DEFAUT = {
 // Une fabrique, pas une constante : un objet partagé verrait ses sous-objets
 // mutés par la première victoire enregistrée, et le « palmarès vide » se
 // mettrait à contenir les records de la partie précédente.
-export const statistiquesVides = () => ({ configurations: {}, quotidien: {}, historique: [] });
+//
+// Deux séries quotidiennes depuis la 1.2.0 : l’Écheveau du jour et la Montée
+// du jour se tiennent séparément — l’une est une habitude de deux minutes,
+// l’autre un quart d’heure, et les mêler rendrait les deux illisibles.
+//
+// Le champ s’ajoute sans toucher au numéro de schéma : `chargerStatistiques`
+// étale d’abord un palmarès vide, si bien qu’un stockage écrit par la 1.1.1
+// se relit tel quel et gagne simplement une seconde série à zéro. Bumper le
+// schéma aurait, lui, effacé les records de tout le monde.
+export const statistiquesVides = () => ({
+    configurations: {}, quotidien: {}, quotidienMontee: {}, historique: []
+});
 
 function obtenirCoffre() {
     if (coffre) return coffre;
@@ -82,7 +97,9 @@ export const effacerStatistiques = () => ecrire('statistiques', statistiquesVide
 
 // Chaque combinaison niveau × variantes a son palmarès : un temps en écheveau
 // épinglé ne concourt pas contre un temps en écheveau nu. L’aimant n’entre pas
-// dans la clé — c’est un confort, pas une règle.
+// dans la clé — c’est un confort, pas une règle. La montée y entre comme un
+// niveau de plus (`montee`, `montee+cercle`…) : c’est une configuration
+// comme une autre, avec un temps total au lieu d’un temps de grille.
 export function cleConfiguration(niveau, variantes = {}) {
     const actives = ['epingles', 'cercle', 'aveugle'].filter(nom => variantes[nom]);
     return [niveau, ...actives].join('+');
@@ -112,13 +129,16 @@ export function enregistrerVictoire({ niveau, variantes, quotidien, dateJour, te
     };
 
     // Seul le défi joué le jour même nourrit la série : un lien du jour rouvert
-    // trois semaines plus tard redonne la grille, hors série.
-    if (quotidien && dateJour && propre && !(stats.quotidien.reussis || []).includes(dateJour)) {
-        const suite = stats.quotidien.dernierJour && ecartJours(stats.quotidien.dernierJour, dateJour) === 1;
-        stats.quotidien.serie = suite ? (stats.quotidien.serie || 0) + 1 : 1;
-        stats.quotidien.meilleureSerie = Math.max(stats.quotidien.meilleureSerie || 0, stats.quotidien.serie);
-        stats.quotidien.dernierJour = dateJour;
-        stats.quotidien.reussis = [...(stats.quotidien.reussis || []), dateJour].slice(-180);
+    // trois semaines plus tard redonne la grille, hors série. Les deux défis
+    // ont chacun la leur — réussir la Montée du jour ne prolonge pas la série
+    // de l’Écheveau, et réciproquement.
+    const serie = niveau === 'montee' ? stats.quotidienMontee : stats.quotidien;
+    if (quotidien && dateJour && propre && !(serie.reussis || []).includes(dateJour)) {
+        const suite = serie.dernierJour && ecartJours(serie.dernierJour, dateJour) === 1;
+        serie.serie = suite ? (serie.serie || 0) + 1 : 1;
+        serie.meilleureSerie = Math.max(serie.meilleureSerie || 0, serie.serie);
+        serie.dernierJour = dateJour;
+        serie.reussis = [...(serie.reussis || []), dateJour].slice(-180);
     }
 
     stats.historique.unshift({ date: new Date().toISOString(), cle, niveau, quotidien, dateJour, tempsMs, touches, gestes, indices });

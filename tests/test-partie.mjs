@@ -120,7 +120,7 @@ check('l’aimant reste dans le cadre', aimanter(-900) >= MARGE && aimanter(9000
     // situation du sommet qu’il désigne, ou la laisser déjà nette.
     let steriles = 0;
     let essais = 0;
-    for (const niveau of ['fil', 'noeud', 'echeveau', 'toile']) {
+    for (const niveau of ['fil', 'noeud', 'echeveau', 'toile', 'lacis', 'dedale']) {
         for (let graine = 0; graine < 20; graine++) {
             const jeu = partieNeuve(genererPuzzle({ graine: `indice-${graine}`, niveau }));
             essais++;
@@ -131,6 +131,21 @@ check('l’aimant reste dans le cadre', aimanter(-900) >= MARGE && aimanter(9000
     }
     check('l’indice fait toujours tomber au moins un croisement',
         steriles === 0, `${steriles} stériles sur ${essais}`);
+    // À treize sommets, l’indice finit par ne plus trouver de meilleure place :
+    // c’est un conseil local, pas un solveur — le README l’assume. Ce qui ne
+    // doit pas arriver, c’est qu’il se consomme quand même. Une partie encore
+    // emmêlée sur laquelle l’indice rend la main doit rester au palmarès.
+    let brules = 0;
+    for (let graine = 0; graine < 40; graine++) {
+        const jeu = partieNeuve(genererPuzzle({ graine: `sterile-${graine}`, niveau: 'dedale' }));
+        for (let coup = 0; coup < 30 && croisements(jeu) > 0; coup++) {
+            const avantCoup = croisements(jeu);
+            if (!appliquerIndice(jeu)) break;
+            if (croisements(jeu) >= avantCoup) brules++;
+        }
+    }
+    check('aucun indice ne se consomme sans rien dégager', brules === 0, `${brules} brûlés`);
+
     check('l’indice compte comme un geste', etat.gestes === 0 && etat.indices === 1);
     check('une partie avec indice ne concourt plus', horsPalmares(etat));
     annuler(etat);

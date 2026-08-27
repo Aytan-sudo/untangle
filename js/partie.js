@@ -182,6 +182,13 @@ export function meilleurIndice(etat) {
         const apres = conflitsAutour(etat.positions, aretes, sommet);
         etat.positions[sommet] = memoire;
         const gain = avant - apres;
+        // Un conseil qui ne dégage rien n’est pas un conseil : on préfère
+        // rendre la main. Sans ce garde-fou, l’indice désignait quand même un
+        // sommet quand aucun ne pouvait faire mieux — il brûlait le palmarès
+        // pour un déplacement neutre, et deux indices d’affilée pouvaient
+        // faire l’aller-retour. Ça ne se voyait guère à sept sommets ; à
+        // treize, le plateau se stabilise bien avant d’être démêlé.
+        if (gain <= 0) continue;
         if (!choix || gain > choix.gain) choix = { sommet, cible, gain };
     }
     return choix;

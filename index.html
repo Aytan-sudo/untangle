@@ -50,7 +50,7 @@
         </div>
         <nav class="icones" aria-label="Menu">
             <button type="button" id="bouton-aide" aria-label="Règles">?</button>
-            <button type="button" id="bouton-defi" aria-label="Défi du jour">◉</button>
+            <button type="button" id="bouton-defi" aria-label="Défis du jour">◉</button>
             <button type="button" id="bouton-theme" aria-label="Changer de monde">◒</button>
             <button type="button" id="bouton-son" aria-label="Couper le son" aria-pressed="true">♪</button>
             <button type="button" id="bouton-options" aria-label="Options">···</button>
@@ -63,6 +63,11 @@
         <div><span>Sommets</span><strong id="hud-touches">0</strong></div>
         <div><span>Temps</span><strong id="hud-temps">0:00</strong></div>
     </section>
+
+    <!-- Le fil d’Ariane de la Montée : six pastilles, une par palier, avec le
+         nombre de sommets. Absent hors montée — six pastilles grises au-dessus
+         d’une grille seule ne diraient rien. -->
+    <div class="echelle" id="echelle" role="img" hidden></div>
 
     <main>
         <div class="cadre" id="cadre-plateau">
@@ -86,7 +91,7 @@
 <dialog id="dialogue-aide" aria-labelledby="titre-aide">
     <form method="dialog" class="entete"><h2 id="titre-aide">Démêler</h2><button value="fermer" aria-label="Fermer">×</button></form>
     <div class="corps">
-        <p>Un écheveau de fils relie quatre à neuf sommets, et les fils se croisent. <strong>Tirez les sommets jusqu’à ce qu’aucun fil n’en croise un autre.</strong> Il n’y a rien à deviner, rien à perdre, aucun coup irréversible.</p>
+        <p>Un écheveau de fils relie quatre à treize sommets, et les fils se croisent. <strong>Tirez les sommets jusqu’à ce qu’aucun fil n’en croise un autre.</strong> Il n’y a rien à deviner, rien à perdre, aucun coup irréversible.</p>
         <p>La grille est toujours démêlable : le graphe est fabriqué planaire, et la disposition qui l’a produit prouve que zéro croisement est atteignable. Mieux, il est <strong>3-connexe</strong> — un tel graphe n’admet qu’un seul dessin planaire, à réflexion près. Quand vous aurez démêlé, ce sera exactement le dessin du générateur.</p>
         <h3>Au doigt</h3>
         <p>Posez le doigt sur un sommet et glissez : le sommet <strong>remonte au-dessus du doigt</strong>, relié par un fil fin, pour rester visible. Relâchez pour poser. Un simple tapotement ne compte pas.</p>
@@ -99,6 +104,9 @@
             <li><kbd>U</kbd> ou <kbd>Ctrl</kbd>+<kbd>Z</kbd> annuler · <kbd>H</kbd> indice</li>
             <li><kbd>?</kbd> ces règles · <kbd>Échap</kbd> fermer</li>
         </ul>
+        <h3>La Montée</h3>
+        <p>Six paliers d’affilée — Fil, Nœud, Écheveau, Toile, Lacis, Dédale — <strong>sous un seul chronomètre qui ne s’arrête pas entre les grilles</strong>. On ne peut pas la rater : il n’y a ni vie ni sablier. Elle se reprend là où on l’a laissée, et son temps total a son propre palmarès. Elle se choisit dans les Options, ou se joue en défi du jour.</p>
+
         <h3>Ce qui compte</h3>
         <p>Le chronomètre, et le nombre de <strong>sommets distincts</strong> que vous avez eu besoin de toucher. Les deux ont leur palmarès ; celui qu’on met en avant se choisit dans les Options. Une partie gagnée avec un indice ne concourt pas.</p>
     </div>
@@ -107,12 +115,18 @@
 <dialog id="dialogue-options" aria-labelledby="titre-options">
     <form method="dialog" class="entete"><h2 id="titre-options">Options</h2><button value="fermer" aria-label="Fermer">×</button></form>
     <div class="corps">
-        <h3>Écheveau</h3>
-        <div class="choix" id="choix-niveau" role="group" aria-label="Taille de l’écheveau"></div>
+        <h3>Mode</h3>
+        <div class="choix" id="choix-mode" role="group" aria-label="Mode de jeu"></div>
+        <p class="note">La Montée enchaîne les six tailles, du Fil au Dédale, sous un seul chronomètre. Aucune vie, aucune défaite : on ne peut pas rater un palier, seulement mettre du temps à le passer.</p>
+
+        <div id="bloc-taille">
+            <h3>Écheveau</h3>
+            <div class="choix choix--grille" id="choix-niveau" role="group" aria-label="Taille de l’écheveau"></div>
+        </div>
 
         <h3>Variantes</h3>
-        <p class="note">Chacune a son propre palmarès. Le défi du jour se joue toujours en version canonique.</p>
-        <label class="case"><input type="checkbox" id="option-epingles"><span><strong>Sommets épinglés</strong><small>Un à trois sommets, selon la taille, sont posés d’avance à leur place et refusent de bouger. Le démêlage s’organise autour d’eux.</small></span></label>
+        <p class="note">Chacune a son propre palmarès, et se combine avec la Montée. Les défis du jour, eux, se jouent toujours en version canonique.</p>
+        <label class="case"><input type="checkbox" id="option-epingles"><span><strong>Sommets épinglés</strong><small>Un à quatre sommets, selon la taille, sont posés d’avance à leur place et refusent de bouger. Le démêlage s’organise autour d’eux.</small></span></label>
         <label class="case"><input type="checkbox" id="option-cercle"><span><strong>Départ en cercle</strong><small>Tous les sommets commencent posés sur un cercle, comme un diagramme de cordes. Très lisible, très intimidant.</small></span></label>
         <label class="case"><input type="checkbox" id="option-aveugle"><span><strong>À l’aveugle</strong><small>Les fils fautifs ne sont plus signalés : seul le compteur de croisements reste. C’est le mode expert.</small></span></label>
 
@@ -134,7 +148,38 @@
         <p class="note">Les deux records sont enregistrés dans tous les cas ; ce réglage choisit seulement lequel s’affiche en premier.</p>
 
         <button type="button" id="bouton-stats" class="outil pleine-largeur">Voir le palmarès</button>
-        <p class="version" id="version">Untangle 1.1.1</p>
+        <p class="version" id="version">Untangle 1.2.0</p>
+    </div>
+</dialog>
+
+<dialog id="dialogue-defis" aria-labelledby="titre-defis">
+    <form method="dialog" class="entete"><h2 id="titre-defis">Les défis du jour</h2><button value="fermer" aria-label="Fermer">×</button></form>
+    <div class="corps">
+        <p class="note">Deux grilles tirées de la date, les mêmes pour tout le monde, refabriquées chez chacun — <span id="defis-date"></span>.</p>
+
+        <div class="defi">
+            <p class="defi-titre">L’Écheveau du jour <span class="defi-fait" id="defi-echeveau-fait" hidden>démêlé ✓</span></p>
+            <p class="note">Une grille de sept sommets. Deux minutes, tous les jours.</p>
+            <p class="note" id="defi-echeveau-serie"></p>
+            <button type="button" id="bouton-defi-echeveau" class="outil pleine-largeur">Jouer</button>
+        </div>
+
+        <div class="defi">
+            <p class="defi-titre">La Montée du jour <span class="defi-fait" id="defi-montee-fait" hidden>démêlée ✓</span></p>
+            <p class="note">Les six paliers, du Fil au Dédale, sous un seul chronomètre. Un quart d’heure, et sa propre série.</p>
+            <p class="note" id="defi-montee-serie"></p>
+            <button type="button" id="bouton-defi-montee" class="outil pleine-largeur">Jouer</button>
+        </div>
+    </div>
+</dialog>
+
+<dialog id="dialogue-palier" aria-labelledby="titre-palier">
+    <form method="dialog" class="entete"><h2 id="titre-palier">Palier franchi</h2><button value="fermer" aria-label="Fermer">×</button></form>
+    <div class="corps">
+        <p class="resultat" id="palier-resume"></p>
+        <div class="echelle" id="palier-echelle" role="img"></div>
+        <p class="note" id="palier-suite"></p>
+        <button type="button" id="bouton-continuer" class="outil outil--fort pleine-largeur">Continuer</button>
     </div>
 </dialog>
 

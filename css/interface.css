@@ -33,9 +33,18 @@ body {
 
 .barre { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 
-.identite { display: flex; align-items: center; gap: 10px; min-width: 0; }
-.identite p { margin: 0; font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: var(--encre-douce); }
-.identite h1 { margin: 0; font-size: 21px; letter-spacing: .01em; }
+/* La rangée d’icônes fait 244 px fermes — cinq cibles de 44 px et leurs
+   intervalles — et ne se comprime pas : ce sont des cibles tactiles. Ce qui
+   reste au titre se calcule donc par soustraction, et à 393 px de large il
+   n’en reste pas assez. Sans `min-width: 0` jusqu’aux enfants et sans
+   troncature, le `h1` ne rétrécissait pas : il débordait par-dessus les
+   boutons, et « Untangle » se lisait « Untangl ». */
+.identite { display: flex; align-items: center; gap: 10px; min-width: 0; flex: 0 1 auto; }
+.identite > div { min-width: 0; }
+.identite p { margin: 0; font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: var(--encre-douce); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.identite h1 { margin: 0; font-size: 21px; letter-spacing: .01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.icones { flex: none; }
 
 .monogramme { width: 34px; height: 34px; flex: none; }
 .monogramme svg { width: 100%; height: 100%; }
@@ -69,7 +78,11 @@ body {
 
 .hud {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    /* La première case porte des libellés longs — « Montée du jour 4/6 »,
+       « Défi du jour », « Écheveau · en cercle » — quand les trois autres
+       n’affichent qu’un nombre. Quatre colonnes égales tronquaient la seule
+       qui a quelque chose à dire. */
+    grid-template-columns: 1.5fr 1fr 1fr 1fr;
     gap: 8px;
     padding: 10px;
     border-radius: var(--rayon);
@@ -78,7 +91,10 @@ body {
 }
 
 .hud div { display: flex; flex-direction: column; gap: 2px; text-align: center; min-width: 0; }
-.hud span { font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--encre-douce); }
+/* Le libellé se tronque comme la valeur. « CROISEMENTS » et « SOMMETS » se
+   chevauchaient sur un écran de 320 px : deux mots superposés, illisibles,
+   et rien pour le signaler — seule la valeur avait son ellipse. */
+.hud span { font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--encre-douce); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .hud strong { font-size: 17px; font-variant-numeric: tabular-nums; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .hud div.alerte strong { color: var(--danger); }
 .hud div.gagne strong { color: var(--accent); }
@@ -151,9 +167,13 @@ dialog .entete {
 
 dialog .entete h2 { margin: 0; font-size: 18px; }
 
+/* 44 px, comme tout bouton d’interface : la convention vise nommément les
+   boutons d’en-tête. Les 36 px d’avant passaient sous le radar — le
+   vérificateur iOS ne mesure que ce qui est affiché, et un dialogue fermé
+   ne l’est pas. */
 dialog .entete button {
-    width: 36px; height: 36px;
-    border-radius: 10px;
+    width: 44px; height: 44px;
+    border-radius: 12px;
     border: 1px solid var(--panneau-bord);
     background: transparent;
     color: var(--encre);
@@ -233,6 +253,68 @@ kbd {
 
 .version { margin-top: 18px; text-align: center; font-size: 12px; color: var(--encre-douce); }
 
+/* ── L’échelle de la Montée ──────────────────────────────────────────────
+   Six pastilles numérotées par le nombre de sommets du palier. Six mots ne
+   tiendraient pas sur la largeur d’un téléphone ; six nombres, si — et
+   l’écart entre 4 et 13 se lit d’un coup d’œil. Ce n’est pas une cible
+   tactile : on ne clique pas dessus, on la lit. */
+
+.echelle {
+    display: flex;
+    gap: 6px;
+    justify-content: center;
+    align-items: center;
+}
+
+.palier {
+    flex: 1 1 auto;
+    max-width: 62px;
+    padding: 5px 0;
+    border-radius: 10px;
+    border: 1px solid var(--panneau-bord);
+    background: var(--panneau);
+    color: var(--encre-douce);
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+    text-align: center;
+    transition: background var(--transition) ease, color var(--transition) ease;
+}
+
+/* Le palier franchi porte l’accent, celui en cours le porte plein : la
+   couleur n’est pas seule à le dire — le relief et la graisse aussi, pour
+   qui ne la distingue pas. */
+.palier--franchi { color: var(--accent); border-color: var(--accent); }
+.palier--courant {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--accent-contraste);
+    font-weight: 700;
+    box-shadow: 0 0 0 2px var(--halo);
+}
+.palier--a-venir { opacity: .5; }
+
+dialog .echelle { margin: 12px 0; }
+
+/* ── Les défis du jour ───────────────────────────────────────────────────── */
+
+.defi {
+    padding: 12px 0;
+    border-bottom: 1px solid var(--panneau-bord);
+}
+
+.defi:last-child { border-bottom: none; }
+.defi p { margin: 0 0 6px; }
+.defi-titre { font-size: 15px; font-weight: 600; }
+
+.defi-fait {
+    margin-left: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--accent);
+}
+
+.defi .outil { margin-top: 8px; }
+
 /* ── Palmarès et fin de partie ───────────────────────────────────────────── */
 
 .tableau { width: 100%; border-collapse: collapse; font-size: 14px; }
@@ -252,10 +334,40 @@ kbd {
 
 /* ── Adaptations ─────────────────────────────────────────────────────────── */
 
-@media (max-width: 380px) {
+/* Le palier commence à 420 px et non 380 : un iPhone 15 fait 393 px de large,
+   et c’est précisément là que le titre se faisait manger. Un palier calé sur
+   le seul iPhone SE laisse tous les téléphones intermédiaires dans l’angle
+   mort — c’est le piège que la convention signale. */
+@media (max-width: 420px) {
     .identite p { display: none; }
-    .icones button { width: 44px; height: 44px; font-size: 15px; }
+    /* On gratte seize pixels sur les intervalles et le monogramme pour que le
+       mot « Untangle » tienne en entier : un titre tronqué en « Unta… » a
+       l’air cassé, là où une barre resserrée n’a l’air de rien. Les cibles de
+       44 px, elles, ne bougent pas — c’est l’espace entre elles qui cède. */
+    .identite { gap: 8px; }
+    .identite h1 { font-size: 17px; }
+    .monogramme { width: 28px; height: 28px; }
+    .icones { gap: 4px; }
+    .icones button { font-size: 15px; }
+    .hud { gap: 5px; padding: 10px 8px; }
     .hud strong { font-size: 15px; }
+    .hud span { font-size: 9px; letter-spacing: .02em; }
+    .palier { font-size: 11px; }
+}
+
+/* Sous 370 px — l’iPhone SE — cinq cibles de 44 px et le monogramme mangent
+   les 292 px disponibles à dix pixels près : aucun réglage de graisse ne fera
+   tenir un mot là-dedans. Le titre se retire donc de l’œil sans se retirer de
+   la page : les lecteurs d’écran le lisent toujours, et le monogramme
+   continue de dire de quel jeu il s’agit. */
+@media (max-width: 370px) {
+    .identite h1 {
+        position: absolute;
+        width: 1px; height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+    }
 }
 
 /* En paysage court, le plateau et les compteurs se mettent côte à côte :
@@ -263,8 +375,12 @@ kbd {
 @media (orientation: landscape) and (max-height: 560px) {
     .app { max-width: 100%; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 260px); align-items: start; }
     .barre { grid-column: 1 / -1; }
-    main { grid-column: 1; }
+    /* Le plateau enjambe les deux rangées de la colonne de droite, sinon c’est
+       lui qui donne sa hauteur à la rangée 2 et l’échelle se retrouve poussée
+       sous la ligne de flottaison — visible dans le DOM, invisible à l’écran. */
+    main { grid-column: 1; grid-row: 2 / span 2; }
     .hud { grid-column: 2; grid-row: 2; grid-template-columns: repeat(2, 1fr); }
+    .echelle { grid-column: 2; grid-row: 3; }
     .cadre { --cote: max(200px, min(48vw, calc(100dvh - 110px))); }
     .identite p { display: none; }
 }
