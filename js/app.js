@@ -26,7 +26,7 @@ import {
     effacerStatistiques, enregistrerPartie, enregistrerPreferences, enregistrerVictoire,
     oublierPartie
 } from './stockage.js';
-import { THEMES, themeAffiche, themeSuivant } from './themes.js';
+import { THEMES, THEME_AUTOMATIQUE, themeAffiche, themeSuivant } from './themes.js';
 import { IDS as VARIANTES_IDS, resumeVariantes, variantesDepuis } from './variantes.js';
 import {
     $, annoncer, construireChoix, copier, entreesNiveaux, entreesThemes, libelleConfiguration,
@@ -93,7 +93,10 @@ function enregistrerReglages() {
 
 function majFormulaire() {
     marquerChoix($('choix-niveau'), preferences.niveau);
-    marquerChoix($('choix-theme'), preferences.theme);
+    // Même en « monde du jour », on marque le monde effectivement affiché :
+    // la case dit d’où vient le choix, les boutons disent lequel c’est.
+    marquerChoix($('choix-theme'), themeAffiche(preferences.theme, dateLocale()));
+    $('option-theme-du-jour').checked = preferences.theme === THEME_AUTOMATIQUE;
     marquerChoix($('choix-classement'), preferences.classement, 'classement');
     for (const id of ['sons', 'vibration', 'aimant', 'signes', ...VARIANTES_IDS]) {
         $(`option-${id}`).checked = Boolean(preferences[id]);
@@ -381,7 +384,7 @@ function demanderUnIndice() {
     if (preferences.sons) sonIndice();
     marquer(conseil.sommet, 'sommet--vise', true);
     visee = conseil.sommet;
-    annoncer(`Le sommet ${conseil.sommet + 1} était le plus empêtré. Cette partie ne concourt plus.`);
+    annoncer(`Le sommet ${conseil.sommet + 1} avait une meilleure place. Cette partie ne concourt plus.`);
     sauvegarder(true);
     if (restants === 0) conclure();
 }
@@ -415,6 +418,14 @@ function brancherInterface() {
     });
     construireChoix($('choix-theme'), entreesThemes(), theme => {
         preferences.theme = theme;
+        enregistrerReglages();
+    });
+    $('option-theme-du-jour').addEventListener('change', evenement => {
+        // Décocher sans rien choisir d’autre fige le monde affiché : sinon la
+        // case se rocherait toute seule au prochain passage dans les Options.
+        preferences.theme = evenement.target.checked
+            ? THEME_AUTOMATIQUE
+            : themeAffiche(preferences.theme, dateLocale());
         enregistrerReglages();
     });
     for (const bouton of $('choix-classement').querySelectorAll('button')) {

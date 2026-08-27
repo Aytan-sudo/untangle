@@ -135,6 +135,24 @@ check('les niveaux alimentent un sélecteur fabriqué depuis le code',
 const sansCase = VARIANTES_IDS.filter(id => !page.includes(`id="option-${id}"`));
 check('chaque variante a sa case dans les Options', sansCase.length === 0, sansCase.join(' '));
 check('les Options portent bien ce nom', page.includes('>Options</h2>') && !/>R[ée]glages</.test(page));
+// Cinq boutons pour une grille de quatre laissaient le dernier monde seul sur
+// sa ligne. « Du jour » n’est pas un monde de plus : c’est une façon d’en
+// choisir un, donc une case à cocher.
+const { entreesNiveaux, entreesThemes } = await import('../js/ui.js');
+egal('les boutons de monde sont exactement les quatre mondes',
+    entreesThemes().map(entree => entree.id), THEMES.map(theme => theme.id));
+check('« du jour » est une case, pas un cinquième bouton',
+    page.includes('id="option-theme-du-jour"') && lire('js/app.js').includes('THEME_AUTOMATIQUE'));
+check('les quatre mondes se rangent en grille',
+    page.includes('choix--grille') && /\.choix--grille\s*\{[^}]*grid-template-columns/.test(styles));
+// Le nombre de sommets est la seule chose qui distingue vraiment deux
+// niveaux : il est écrit sur le bouton.
+check('chaque bouton de niveau annonce sa taille',
+    Object.values(NIVEAUX).every(niveau => entreesNiveaux()
+        .some(entree => entree.id === niveau.id && entree.nom.includes(String(niveau.sommets)))));
+check('aucun niveau ne dépasse la dizaine de sommets',
+    Object.values(NIVEAUX).every(niveau => niveau.sommets >= 4 && niveau.sommets <= 9),
+    Object.values(NIVEAUX).map(niveau => niveau.sommets).join(' '));
 
 // ── Mobile d’abord ────────────────────────────────────────────────────────
 check('le viewport verrouille le zoom tactile',

@@ -5,10 +5,10 @@
 import { MARGE, TAILLE } from './config.js';
 import { conflitsAutour, conflitsParSommet, nombreConflits } from './graphe.js';
 
-// Pas de la grille magnétique, en unités de plateau. Assez fin pour ne pas
-// brider le placement, assez gros pour que deux sommets voisins tombent
-// visiblement sur la même colonne.
-export const PAS_AIMANT = 40;
+// Pas de la grille magnétique, en unités de plateau. Il doit dépasser le
+// diamètre d’un sommet : sur une maille plus fine, deux sommets voisins se
+// chevaucheraient — et se chevaucher, dans ce jeu, c’est un croisement.
+export const PAS_AIMANT = 85;
 
 const AIMANT_MIN = Math.ceil(MARGE / PAS_AIMANT) * PAS_AIMANT;
 const AIMANT_MAX = Math.floor((TAILLE - MARGE) / PAS_AIMANT) * PAS_AIMANT;
@@ -107,10 +107,21 @@ export function sommetLePlusEmpetre(etat) {
     return meilleur;
 }
 
-// Où poser un sommet pour le dégager : on part du barycentre de ses voisins —
-// la place naturelle d’un sommet dans un dessin planaire — puis on essaie des
-// anneaux autour, et on garde le point qui laisse le moins de conflits. Rien
-// d’aléatoire : le même écheveau donne toujours le même indice.
+// Où poser un sommet pour le dégager.
+//
+// On balaie tout le plateau, pas un voisinage : à neuf sommets et dix-huit
+// fils, essayer quatre-vingts positions coûte quelques microsecondes, et la
+// bonne place est souvent à l’autre bout du cadre. Une première version
+// n’essayait que des anneaux autour du barycentre des voisins — un rayon
+// calibré pour des plateaux trois fois plus peuplés — et rendait souvent un
+// conseil qui ne dégageait rien du tout.
+//
+// À égalité de conflits, on retient la position la plus proche du barycentre
+// des voisins : c’est la place naturelle d’un sommet dans un dessin planaire,
+// et le conseil a alors l’air d’un conseil plutôt que d’un coup de dé. Rien
+// d’aléatoire ici : le même écheveau donne toujours le même indice.
+export const BALAYAGE = 10;
+
 export function positionSuggeree(etat, sommet) {
     const { aretes } = etat.puzzle;
     const voisins = aretes.filter(([a, b]) => a === sommet || b === sommet)
@@ -123,33 +134,63 @@ export function positionSuggeree(etat, sommet) {
         : { x: TAILLE / 2, y: TAILLE / 2 };
 
     const candidats = [barycentre];
-    for (const rayon of [45, 95, 155, 225]) {
-        for (let pas = 0; pas < 12; pas++) {
-            const angle = (pas / 12) * Math.PI * 2;
-            candidats.push({
-                x: contraindre(barycentre.x + rayon * Math.cos(angle)),
-                y: contraindre(barycentre.y + rayon * Math.sin(angle))
-            });
+    const pas = (TAILLE - 2 * MARGE) / BALAYAGE;
+    for (let colonne = 0; colonne <= BALAYAGE; colonne++) {
+        for (let ligne = 0; ligne <= BALAYAGE; ligne++) {
+            candidats.push({ x: MARGE + colonne * pas, y: MARGE + ligne * pas });
         }
     }
 
     const memoire = etat.positions[sommet];
-    let meilleur = candidats[0];
+    let meilleur = barycentre;
     let minimum = Infinity;
+    let plusProche = Infinity;
     for (const candidat of candidats) {
         etat.positions[sommet] = candidat;
         const compte = conflitsAutour(etat.positions, aretes, sommet);
-        if (compte < minimum) { minimum = compte; meilleur = candidat; }
-        if (compte === 0) break;
+        const ecart = Math.hypot(candidat.x - barycentre.x, candidat.y - barycentre.y);
+        if (compte < minimum || (compte === minimum && ecart < plusProche)) {
+            minimum = compte;
+            plusProche = ecart;
+            meilleur = candidat;
+        }
     }
     etat.positions[sommet] = memoire;
     return meilleur;
 }
 
+// Quel sommet conseiller, et où le poser.
+//
+// Pas simplement le plus empêtré : il arrive qu’il n’ait aucune bonne place,
+// ses voisins étant eux-mêmes mal posés — le conseil ne dégageait alors rien
+// et se contentait de brûler l’indice. On cherche donc, parmi tous les sommets
+// libres, celui dont le déplacement fait tomber le plus de croisements.
+//
+// Comme un déplacement ne change que les conflits des fils du sommet déplacé,
+// minimiser ses conflits à lui revient exactement à minimiser le total : la
+// mesure locale suffit, il n’y a jamais besoin de recompter l’écheveau.
+export function meilleurIndice(etat) {
+    const { aretes, sommets } = etat.puzzle;
+    let choix = null;
+    for (let sommet = 0; sommet < sommets; sommet++) {
+        if (estEpingle(etat, sommet)) continue;
+        const avant = conflitsAutour(etat.positions, aretes, sommet);
+        if (avant === 0) continue;
+        const cible = positionSuggeree(etat, sommet);
+        const memoire = etat.positions[sommet];
+        etat.positions[sommet] = cible;
+        const apres = conflitsAutour(etat.positions, aretes, sommet);
+        etat.positions[sommet] = memoire;
+        const gain = avant - apres;
+        if (!choix || gain > choix.gain) choix = { sommet, cible, gain };
+    }
+    return choix;
+}
+
 export function appliquerIndice(etat) {
-    const sommet = sommetLePlusEmpetre(etat);
-    if (sommet < 0) return null;
-    const cible = positionSuggeree(etat, sommet);
+    const choix = meilleurIndice(etat);
+    if (!choix) return null;
+    const { sommet, cible } = choix;
     const depart = etat.positions[sommet];
     etat.historique.push({ sommet, x: depart.x, y: depart.y, indice: true });
     etat.positions[sommet] = cible;

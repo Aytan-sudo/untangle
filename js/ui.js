@@ -3,7 +3,7 @@
 
 import { formaterDate, formaterTemps } from './defi.js';
 import { NIVEAUX } from './generateur.js';
-import { THEMES, THEME_AUTOMATIQUE } from './themes.js';
+import { THEMES } from './themes.js';
 import { VARIANTES } from './variantes.js';
 
 export const $ = id => document.getElementById(id);
@@ -38,9 +38,14 @@ export function marquerChoix(conteneur, valeur, attribut = 'valeur') {
     }
 }
 
-export const entreesNiveaux = () => Object.values(NIVEAUX).map(niveau => ({ id: niveau.id, nom: niveau.nom }));
-export const entreesThemes = () => [{ id: THEME_AUTOMATIQUE, nom: 'Du jour' },
-    ...THEMES.map(theme => ({ id: theme.id, nom: theme.nom }))];
+export const entreesNiveaux = () => Object.values(NIVEAUX).map(niveau =>
+    ({ id: niveau.id, nom: `${niveau.nom} · ${niveau.sommets}` }));
+
+// Les quatre mondes seulement : « du jour » est une case à cocher, pas un
+// cinquième bouton. Cinq boutons pour une grille de quatre laissaient le
+// dernier seul sur sa ligne, et « du jour » n’est de toute façon pas un monde
+// — c’est une façon d’en choisir un.
+export const entreesThemes = () => THEMES.map(theme => ({ id: theme.id, nom: theme.nom }));
 
 export function majHud({ partie, croisements, touches, temps, termine }) {
     $('hud-niveau').textContent = partie;

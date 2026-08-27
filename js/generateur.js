@@ -5,37 +5,88 @@
 import { MARGE, TAILLE } from './config.js';
 import { Alea } from './hasard.js';
 import {
-    CONTACT, aretesEnConflit, degres, distancePointSegment,
-    estTriconnexe, nombreConflits
+    CONTACT, aretesEnConflit, croisementsFrancs, degres, distancePointSegment,
+    estTriconnexe, unSommetReposeSurUnFil
 } from './graphe.js';
 
+// Quatre tailles, de la poignée de sommets à la petite dizaine. Au-delà, ce
+// n’est plus un jeu de réflexion mais un jeu de patience contre l’écran : les
+// sommets deviennent des têtes d’épingle et le plateau un plat de spaghettis.
+// Les paliers suivent le nombre de croisements au départ, qui double à peu
+// près à chaque niveau — c’est lui, et non le nombre de sommets, qui fait la
+// difficulté ressentie.
 export const NIVEAUX = {
-    fil: { id: 'fil', nom: 'Fil', sommets: 10 },
-    noeud: { id: 'noeud', nom: 'Nœud', sommets: 16 },
-    echeveau: { id: 'echeveau', nom: 'Écheveau', sommets: 24 },
-    toile: { id: 'toile', nom: 'Toile', sommets: 34 }
+    fil: { id: 'fil', nom: 'Fil', sommets: 4 },
+    noeud: { id: 'noeud', nom: 'Nœud', sommets: 5 },
+    echeveau: { id: 'echeveau', nom: 'Écheveau', sommets: 7 },
+    toile: { id: 'toile', nom: 'Toile', sommets: 9 }
 };
 
-// Fils par sommet visés après élagage. La triangulation en donne près de
-// trois ; deux se lisent sur un téléphone sans que le graphe cesse d’être
-// 3-connexe — donc sans rien céder sur l’unicité du dessin.
+// Fils par sommet visés après élagage. À ces tailles, la contrainte de
+// 3-connexité y mène presque toute seule : un petit graphe planaire 3-connexe
+// tient naturellement entre 1,5 et 2 fils par sommet, et l’élagage n’a
+// souvent qu’un ou deux fils à retirer. La cible reste, pour les tailles où
+// elle aurait quelque chose à faire.
 export const DENSITE = 2;
 
-const TENTATIVES_SEMIS = 60;
-const TENTATIVES_BROUILLAGE = 40;
+const TENTATIVES_SEMIS = 200;
+const TENTATIVES_BROUILLAGE = 120;
+
+// Recentre et dilate le nuage pour qu’il occupe le cadre.
+//
+// Tirer quelques cases au hasard dans une grille laisse souvent la moitié du
+// plateau vide : à quatre sommets, le graphe se tasse dans un coin et l’écran
+// a l’air en panne.
+//
+// Les deux axes s’étirent séparément — c’est une application affine, elle
+// préserve exactement la planarité et les croisements, donc la garantie du
+// jeu n’en souffre pas. Les deux facteurs valent au moins 1, puisque la boîte
+// englobante tient forcément dans le plateau : les sommets ne peuvent que
+// s’écarter, jamais se rapprocher, et aucune distance de contact ne diminue.
+// Reste l’œil : un étirement libre aplatirait les figures en accordéon, d’où
+// la bride sur l’écart entre les deux facteurs.
+export const DEFORMATION_MAX = 1.8;
+
+export function etaler(points) {
+    const utile = TAILLE - 2 * MARGE;
+    const etendue = axe => {
+        const valeurs = points.map(point => point[axe]);
+        const minimum = Math.min(...valeurs);
+        const maximum = Math.max(...valeurs);
+        return [minimum, maximum, maximum - minimum];
+    };
+    const [minX, maxX, largeur] = etendue('x');
+    const [minY, maxY, hauteur] = etendue('y');
+    if (largeur <= 1 && hauteur <= 1) return points;
+
+    let facteurX = largeur > 1 ? utile / largeur : Infinity;
+    let facteurY = hauteur > 1 ? utile / hauteur : Infinity;
+    const plancher = Math.min(facteurX, facteurY);
+    facteurX = Math.min(facteurX, plancher * DEFORMATION_MAX);
+    facteurY = Math.min(facteurY, plancher * DEFORMATION_MAX);
+
+    const centreX = (minX + maxX) / 2;
+    const centreY = (minY + maxY) / 2;
+    return points.map(point => ({
+        x: TAILLE / 2 + (point.x - centreX) * facteurX,
+        y: TAILLE / 2 + (point.y - centreY) * facteurY
+    }));
+}
 
 // Un semis sur grille jitterée plutôt qu’un semis franchement aléatoire : deux
-// sommets ne peuvent pas se confondre, trois ne peuvent pas s’aligner, et le
-// nuage couvre le plateau au lieu de s’agglutiner dans un coin.
+// sommets ne peuvent pas se confondre, trois ne peuvent pas s’aligner. La
+// grille est à peine plus grande que le nombre de sommets — assez lâche pour
+// que les dispositions varient, assez serrée pour que le nuage ne se tasse
+// pas — puis l’étalement finit le travail.
 export function semisDePoints(alea, nombre) {
-    const cotes = Math.ceil(Math.sqrt(nombre * 3));
+    const cotes = Math.ceil(Math.sqrt(nombre * 1.6));
     const pas = (TAILLE - 2 * MARGE) / cotes;
     const cases = [];
     for (let y = 0; y < cotes; y++) for (let x = 0; x < cotes; x++) cases.push([x, y]);
-    return alea.melanger(cases).slice(0, nombre).map(([x, y]) => ({
+    return etaler(alea.melanger(cases).slice(0, nombre).map(([x, y]) => ({
         x: MARGE + (x + 0.2 + 0.6 * alea.suivant()) * pas,
         y: MARGE + (y + 0.2 + 0.6 * alea.suivant()) * pas
-    }));
+    })));
 }
 
 // On mélange toutes les paires et on garde celles qui ne coupent rien : le
@@ -96,7 +147,8 @@ export function choisirEpingles(alea, solution, nombre) {
 }
 
 export function nombreEpingles(nombreSommets) {
-    return Math.max(2, Math.min(4, Math.round(nombreSommets / 8)));
+    if (nombreSommets <= 5) return 1;
+    return nombreSommets <= 7 ? 2 : 3;
 }
 
 function disperser(alea, nombre, cercle) {
@@ -109,22 +161,51 @@ function disperser(alea, nombre, cercle) {
     });
 }
 
-// Un brouillage doit être franchement emmêlé : le hasard produit parfois une
-// disposition à moitié résolue, qui donnerait une partie sans intérêt. On en
-// tire plusieurs et on garde la plus embrouillée.
+// Combien de croisements francs on veut au départ : une fourchette, pas un
+// plancher. Un plancher seul laissait passer la première disposition venue
+// au-dessus du seuil, et le hasard en produit d’extravagantes — un Écheveau
+// pouvait sortir à quatre croisements comme à vingt-deux. À ce compte-là, le
+// niveau ne veut plus rien dire. La fourchette rend la difficulté annoncée
+// tenable ; jamais moins d’un croisement, sans quoi la grille arrive résolue.
+export function bandeDeBrouillage(nombreAretes) {
+    const bas = Math.max(1, Math.round(nombreAretes * 0.45));
+    return [bas, Math.max(bas + 1, Math.round(nombreAretes * 0.95))];
+}
+
+// Un brouillage doit être franchement emmêlé — et propre.
+//
+// « Propre » n’allait pas de soi : la première version prenait, à défaut de
+// seuil atteint, la disposition la plus embrouillée de toutes. Or un sommet
+// posé sur un fil compte comme un croisement. En dessous d’une dizaine de
+// sommets le seuil n’est jamais atteignable — un K4 n’admet qu’un croisement
+// franc, pas davantage — si bien que le « meilleur de quarante » allait
+// systématiquement chercher les dispositions dégénérées : trois sommets
+// alignés, un quatrième couché sur une corde. Ça gonflait le compteur sans
+// rien apporter à jouer, et ça avait l’air d’un bug. On refuse donc d’abord
+// les dispositions sales, on retient la première assez emmêlée, et à défaut
+// la plus emmêlée parmi les propres.
 export function brouiller(alea, solution, aretes, options = {}) {
     const { cercle = false, epingles = [] } = options;
-    const seuil = Math.max(4, Math.round(solution.length * 0.6));
+    const [bas, haut] = bandeDeBrouillage(aretes.length);
+    // À défaut de tomber dans la fourchette, on garde la disposition propre
+    // qui s’en approche le plus — par le bas comme par le haut. Un K4 n’admet
+    // qu’un seul croisement franc, quoi qu’on fasse : la fourchette y est hors
+    // d’atteinte, et c’est le repli qui sert.
     let meilleur = null;
-    let meilleurCompte = -1;
+    let meilleurEcart = Infinity;
+    let secours = null;
+    let compteSecours = -1;
     for (let essai = 0; essai < TENTATIVES_BROUILLAGE; essai++) {
         const positions = alea.melanger(disperser(alea, solution.length, cercle));
         for (const epingle of epingles) positions[epingle] = { ...solution[epingle] };
-        const compte = nombreConflits(positions, aretes);
-        if (compte > meilleurCompte) { meilleurCompte = compte; meilleur = positions; }
-        if (compte >= seuil) break;
+        const compte = croisementsFrancs(positions, aretes);
+        if (compte > compteSecours) { compteSecours = compte; secours = positions; }
+        if (unSommetReposeSurUnFil(positions, aretes)) continue;
+        if (compte >= bas && compte <= haut) return positions;
+        const ecart = compte < bas ? bas - compte : compte - haut;
+        if (compte >= 1 && ecart < meilleurEcart) { meilleurEcart = ecart; meilleur = positions; }
     }
-    return meilleur;
+    return meilleur || secours;
 }
 
 export function genererPuzzle({ graine, niveau = 'echeveau', cercle = false, epingles = false }) {

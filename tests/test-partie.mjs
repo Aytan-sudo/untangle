@@ -4,20 +4,20 @@ import { MARGE, TAILLE } from '../js/config.js';
 import { genererPuzzle } from '../js/generateur.js';
 import { conflitsAutour, nombreConflits } from '../js/graphe.js';
 import {
-    PAS_AIMANT, PAS_FIN, PAS_NORMAL, aimanter, annuler, appliquerIndice, contraindre, courbe, croisements,
-    deposer, estEpingle, estTerminee, horsPalmares, partieNeuve, pasDeDeplacement,
-    positionSuggeree, restaurer, serialiser, sommetLePlusEmpetre
+    BALAYAGE, PAS_AIMANT, PAS_FIN, PAS_NORMAL, aimanter, annuler, appliquerIndice, contraindre, courbe, croisements,
+    deposer, estEpingle, estTerminee, horsPalmares, meilleurIndice, partieNeuve,
+    pasDeDeplacement, positionSuggeree, restaurer, serialiser, sommetLePlusEmpetre
 } from '../js/partie.js';
 
 const { check, egal, rapport } = compteur();
 console.log('\nLa partie\n');
 
-const puzzle = genererPuzzle({ graine: 'partie', niveau: 'noeud' });
+const puzzle = genererPuzzle({ graine: 'partie', niveau: 'toile' });
 
 // — Contraintes de placement
 check('le cadre borne les positions', contraindre(-500) === MARGE && contraindre(9000) === TAILLE - MARGE);
 check('le cadre laisse passer l’intérieur', contraindre(500) === 500);
-check('l’aimant accroche la grille', aimanter(497) % PAS_AIMANT === 0 && aimanter(497) === 480);
+check('l’aimant accroche la grille', aimanter(497) % PAS_AIMANT === 0 && aimanter(497) === 510);
 check('l’aimant reste dans le cadre', aimanter(-900) >= MARGE && aimanter(9000) <= TAILLE - MARGE);
 
 // — Le pas du clavier
@@ -25,8 +25,10 @@ check('l’aimant reste dans le cadre', aimanter(-900) >= MARGE && aimanter(9000
     egal('sans aimant, deux pas au choix',
         [pasDeDeplacement(), pasDeDeplacement({ fin: true })], [PAS_NORMAL, PAS_FIN]);
     // Le piège : un pas plus court qu’une maille est avalé par l’accrochage.
-    // La flèche ne fait alors rien — toujours, pour le pas fin.
-    check('le pas fin est plus court qu’une maille', PAS_FIN < PAS_AIMANT);
+    // La flèche ne fait alors rien — toujours, pour le pas fin, et une fois
+    // sur deux pour le pas normal.
+    check('les deux pas libres sont plus courts qu’une maille',
+        PAS_FIN < PAS_AIMANT && PAS_NORMAL < PAS_AIMANT);
     egal('avec l’aimant, le pas vaut la maille',
         [pasDeDeplacement({ aimant: true }), pasDeDeplacement({ aimant: true, fin: true })],
         [PAS_AIMANT, PAS_AIMANT]);
@@ -61,7 +63,8 @@ check('l’aimant reste dans le cadre', aimanter(-900) >= MARGE && aimanter(9000
     check('un second sommet touché est compté à part', etat.touches.length === 2 && etat.gestes === 3);
 
     check('l’aimant pose sur la grille', deposer(etat, 2, 313, 587, { aimant: true })
-        && etat.positions[2].x === 320 && etat.positions[2].y === 600);
+        && etat.positions[2].x === aimanter(313) && etat.positions[2].y === aimanter(587)
+        && etat.positions[2].x % PAS_AIMANT === 0);
     check('le cadre s’applique à la dépose', deposer(etat, 3, -400, 4000)
         && etat.positions[3].x === MARGE && etat.positions[3].y === TAILLE - MARGE);
 }
@@ -85,7 +88,7 @@ check('l’aimant reste dans le cadre', aimanter(-900) >= MARGE && aimanter(9000
 
 // — Épingles
 {
-    const epingle = genererPuzzle({ graine: 'partie', niveau: 'noeud', epingles: true });
+    const epingle = genererPuzzle({ graine: 'partie', niveau: 'toile', epingles: true });
     const etat = partieNeuve(epingle);
     const ancre = epingle.epingles[0];
     check('un sommet épinglé est reconnu', estEpingle(etat, ancre));
@@ -97,8 +100,9 @@ check('l’aimant reste dans le cadre', aimanter(-900) >= MARGE && aimanter(9000
 // — Indice
 {
     const etat = partieNeuve(puzzle);
-    const empetre = sommetLePlusEmpetre(etat);
-    check('le sommet le plus empêtré est trouvé', empetre >= 0 && empetre < puzzle.sommets);
+    const empetre = meilleurIndice(etat).sommet;
+    check('un sommet à conseiller est trouvé', empetre >= 0 && empetre < puzzle.sommets);
+    check('le plus empêtré reste identifiable', sommetLePlusEmpetre(etat) >= 0);
     const avant = conflitsAutour(etat.positions, puzzle.aretes, empetre);
     const suggeree = positionSuggeree(etat, empetre);
     check('la position suggérée tient dans le cadre',
@@ -107,14 +111,51 @@ check('l’aimant reste dans le cadre', aimanter(-900) >= MARGE && aimanter(9000
 
     const avantTotal = croisements(etat);
     const applique = appliquerIndice(etat);
-    check('l’indice bouge le sommet le plus empêtré', applique && applique.sommet === empetre);
+    check('l’indice bouge le sommet conseillé', applique && applique.sommet === empetre);
     const apres = conflitsAutour(etat.positions, puzzle.aretes, empetre);
     check('l’indice dégage le sommet', apres < avant, `${avant} → ${apres}`);
     check('l’indice ne rajoute pas de croisements ailleurs', croisements(etat) <= avantTotal);
+    // Un conseil qui ne dégage rien n’est pas un conseil. Sur tous les
+    // niveaux, sur beaucoup de graines : l’indice doit toujours améliorer la
+    // situation du sommet qu’il désigne, ou la laisser déjà nette.
+    let steriles = 0;
+    let essais = 0;
+    for (const niveau of ['fil', 'noeud', 'echeveau', 'toile']) {
+        for (let graine = 0; graine < 20; graine++) {
+            const jeu = partieNeuve(genererPuzzle({ graine: `indice-${graine}`, niveau }));
+            essais++;
+            const avantTout = croisements(jeu);
+            const conseil = appliquerIndice(jeu);
+            if (!conseil || croisements(jeu) >= avantTout) steriles++;
+        }
+    }
+    check('l’indice fait toujours tomber au moins un croisement',
+        steriles === 0, `${steriles} stériles sur ${essais}`);
     check('l’indice compte comme un geste', etat.gestes === 0 && etat.indices === 1);
     check('une partie avec indice ne concourt plus', horsPalmares(etat));
     annuler(etat);
     check('annuler l’indice rend aussi la partie au palmarès', !horsPalmares(etat));
+}
+
+// — Le balayage de l’indice couvre le plateau
+{
+    // Une première version n’essayait que des anneaux de 45 à 225 unités
+    // autour du barycentre des voisins — une échelle calibrée pour des
+    // plateaux trois fois plus peuplés. Sur un plateau de 1000 avec neuf
+    // sommets, elle ne voyait pas la bonne place, qui est souvent à l’autre
+    // bout du cadre.
+    const pas = (TAILLE - 2 * MARGE) / BALAYAGE;
+    check('le balayage échantillonne tout le plateau', BALAYAGE >= 8, String(BALAYAGE));
+    // Le maillage doit être plus fin que l’écart entre deux sommets, sinon il
+    // enjambe les places libres.
+    check('le maillage est plus fin que l’écart entre sommets', pas < 120, `pas ${pas.toFixed(0)}`);
+
+    // Et il doit rester bon marché : l’indice se demande en pleine partie.
+    const jeu = partieNeuve(genererPuzzle({ graine: 'cout', niveau: 'toile' }));
+    const debut = performance.now();
+    for (let i = 0; i < 20; i++) positionSuggeree(jeu, i % jeu.puzzle.sommets);
+    const cout = (performance.now() - debut) / 20;
+    check('un conseil coûte moins d’une milliseconde', cout < 1, `${cout.toFixed(2)} ms`);
 }
 
 // — L’indice est déterministe
@@ -178,7 +219,7 @@ check('l’aimant reste dans le cadre', aimanter(-900) >= MARGE && aimanter(9000
     check('la courbe se recalcule si elle manque', bricole.jalons.length === 1);
 }
 {
-    const epingle = genererPuzzle({ graine: 'partie', niveau: 'noeud', epingles: true });
+    const epingle = genererPuzzle({ graine: 'partie', niveau: 'toile', epingles: true });
     const triche = restaurer(epingle, {
         positions: epingle.positions.map(() => [500, 500]), gestes: 3, touches: [], indices: 0
     });
@@ -186,6 +227,18 @@ check('l’aimant reste dans le cadre', aimanter(-900) >= MARGE && aimanter(9000
         epingle.epingles.every(index =>
             triche.positions[index].x === epingle.solution[index].x
             && triche.positions[index].y === epingle.solution[index].y));
+}
+
+// — L’aimant laisse de la place aux sommets
+{
+    // Deux sommets sur des mailles voisines ne doivent pas se chevaucher :
+    // dans ce jeu, se chevaucher est un croisement, et on l’aurait imposé au
+    // joueur sans qu’il puisse rien y faire.
+    const styles = readFileSync(new URL('../css/themes.css', import.meta.url), 'utf8');
+    const rayons = [...styles.matchAll(/--sommet-rayon:\s*([\d.]+)/g)].map(([, valeur]) => Number(valeur));
+    check('des rayons de sommet ont été relevés', rayons.length === 4, String(rayons.length));
+    check('une maille tient deux sommets côte à côte',
+        PAS_AIMANT > 2 * Math.max(...rayons), `maille ${PAS_AIMANT}, plus gros sommet ${Math.max(...rayons)}`);
 }
 
 // — Les paliers de chaleur du rendu

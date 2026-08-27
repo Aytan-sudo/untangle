@@ -86,7 +86,7 @@
 <dialog id="dialogue-aide" aria-labelledby="titre-aide">
     <form method="dialog" class="entete"><h2 id="titre-aide">Démêler</h2><button value="fermer" aria-label="Fermer">×</button></form>
     <div class="corps">
-        <p>Un écheveau de fils relie des sommets, et les fils se croisent. <strong>Tirez les sommets jusqu’à ce qu’aucun fil n’en croise un autre.</strong> Il n’y a rien à deviner, rien à perdre, aucun coup irréversible.</p>
+        <p>Un écheveau de fils relie quatre à neuf sommets, et les fils se croisent. <strong>Tirez les sommets jusqu’à ce qu’aucun fil n’en croise un autre.</strong> Il n’y a rien à deviner, rien à perdre, aucun coup irréversible.</p>
         <p>La grille est toujours démêlable : le graphe est fabriqué planaire, et la disposition qui l’a produit prouve que zéro croisement est atteignable. Mieux, il est <strong>3-connexe</strong> — un tel graphe n’admet qu’un seul dessin planaire, à réflexion près. Quand vous aurez démêlé, ce sera exactement le dessin du générateur.</p>
         <h3>Au doigt</h3>
         <p>Posez le doigt sur un sommet et glissez : le sommet <strong>remonte au-dessus du doigt</strong>, relié par un fil fin, pour rester visible. Relâchez pour poser. Un simple tapotement ne compte pas.</p>
@@ -112,12 +112,13 @@
 
         <h3>Variantes</h3>
         <p class="note">Chacune a son propre palmarès. Le défi du jour se joue toujours en version canonique.</p>
-        <label class="case"><input type="checkbox" id="option-epingles"><span><strong>Sommets épinglés</strong><small>Deux à quatre sommets sont posés d’avance à leur place et refusent de bouger. Le démêlage s’organise autour d’eux.</small></span></label>
+        <label class="case"><input type="checkbox" id="option-epingles"><span><strong>Sommets épinglés</strong><small>Un à trois sommets, selon la taille, sont posés d’avance à leur place et refusent de bouger. Le démêlage s’organise autour d’eux.</small></span></label>
         <label class="case"><input type="checkbox" id="option-cercle"><span><strong>Départ en cercle</strong><small>Tous les sommets commencent posés sur un cercle, comme un diagramme de cordes. Très lisible, très intimidant.</small></span></label>
         <label class="case"><input type="checkbox" id="option-aveugle"><span><strong>À l’aveugle</strong><small>Les fils fautifs ne sont plus signalés : seul le compteur de croisements reste. C’est le mode expert.</small></span></label>
 
         <h3>Monde</h3>
-        <div class="choix" id="choix-theme" role="group" aria-label="Monde"></div>
+        <label class="case"><input type="checkbox" id="option-theme-du-jour"><span><strong>Le monde du jour</strong><small>La date choisit le décor : tout le monde ouvre le même le même jour, et les quatre reviennent au fil de la semaine. Choisir un monde ci-dessous le fige.</small></span></label>
+        <div class="choix choix--grille" id="choix-theme" role="group" aria-label="Monde"></div>
 
         <h3>Sensations</h3>
         <label class="case"><input type="checkbox" id="option-sons"><span><strong>Sons</strong><small>Synthèse discrète : la note monte quand une dépose dénoue, elle descend quand elle embrouille.</small></span></label>
@@ -133,7 +134,7 @@
         <p class="note">Les deux records sont enregistrés dans tous les cas ; ce réglage choisit seulement lequel s’affiche en premier.</p>
 
         <button type="button" id="bouton-stats" class="outil pleine-largeur">Voir le palmarès</button>
-        <p class="version" id="version">Untangle 1.0.0</p>
+        <p class="version" id="version">Untangle 1.1.0</p>
     </div>
 </dialog>
 

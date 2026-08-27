@@ -51,11 +51,11 @@
 .fil-fond { stroke: var(--fil-fond); stroke-width: var(--fil-epaisseur); }
 .fil-ame { stroke: var(--fil-ame); stroke-width: var(--ame-epaisseur); }
 
-/* La chaleur d’un fil, c’est le nombre de croisements qu’il porte. Un drapeau
-   « fautif / sain » ne dirait rien au départ — quarante-six fils sur
-   quarante-huit sont fautifs, le plateau devient un mur uniforme. Trois
-   paliers mélangés à la teinte d’alerte gardent le plateau lisible du premier
-   geste au dernier. */
+/* La chaleur d’un fil, c’est le nombre de croisements qu’il porte, gradué par
+   rapport au pire fil du moment. Un drapeau « fautif / sain » ne dirait rien
+   au départ, où la quasi-totalité des fils sont fautifs. Trois paliers
+   mélangés à la teinte d’alerte gardent le plateau lisible du premier geste
+   au dernier. */
 .fil--chaud1 .fil-fond { stroke: color-mix(in oklab, var(--fil-fautif) 32%, var(--fil-fond)); }
 .fil--chaud1 .fil-ame { stroke: color-mix(in oklab, var(--fil-fautif-ame) 32%, var(--fil-ame)); }
 .fil--chaud2 .fil-fond { stroke: color-mix(in oklab, var(--fil-fautif) 66%, var(--fil-fond)); }
@@ -65,8 +65,8 @@
 
 /* La couleur porte une information : elle ne peut pas la porter seule. Le
    tireté se resserre avec la chaleur, comme la teinte. */
-[data-signes="oui"] .fil--chaud2 .fil-ame { stroke-dasharray: 22 12; }
-[data-signes="oui"] .fil--chaud3 .fil-ame { stroke-dasharray: 10 8; }
+[data-signes="oui"] .fil--chaud2 .fil-ame { stroke-dasharray: 34 20; }
+[data-signes="oui"] .fil--chaud3 .fil-ame { stroke-dasharray: 16 13; }
 
 /* À l’aveugle, plus rien ne se signale : seul le compteur de croisements
    subsiste. */
@@ -80,8 +80,8 @@
 
 #laisse {
     stroke: var(--accent);
-    stroke-width: 2;
-    stroke-dasharray: 7 7;
+    stroke-width: 3.5;
+    stroke-dasharray: 12 12;
     opacity: 0;
     pointer-events: none;
     transition: opacity var(--transition) ease;
@@ -105,7 +105,7 @@
 .sommet-corps {
     fill: var(--sommet);
     stroke: var(--sommet-bord);
-    stroke-width: 2.5;
+    stroke-width: 4.5;
     filter: var(--lueur);
     transition: fill var(--transition) ease;
 }
@@ -114,7 +114,7 @@
 
 .sommet-rivet {
     stroke: var(--sommet-coeur);
-    stroke-width: 2.5;
+    stroke-width: 4.5;
     stroke-linecap: round;
     opacity: 0;
 }

@@ -33,8 +33,8 @@ Ce qu’elle ne promet pas :
 - que le chemin soit court. Le nombre minimal de sommets à déplacer n’est pas
   calculé — il est NP-difficile en général, et le jeu ne prétend pas le
   connaître. Il n’y a donc pas de « par » ;
-- que ce soit facile. Un Écheveau de vingt-quatre sommets démarre à plus de
-  trois cents croisements ;
+- que ce soit facile. Une Toile démarre à une quinzaine de croisements, et
+  chacun s’en va rarement seul ;
 - que votre dessin ressemble au dessin d’origine à l’œil nu. Il lui est
   homéomorphe, ce qui est une autre affaire.
 
@@ -49,9 +49,10 @@ pour poser. Un simple tapotement ne compte pas.
 
 La chaleur d’un fil dit combien de croisements il porte, sur une échelle
 **relative au pire fil du moment**. Des seuils fixes ne marcheraient à aucun
-bout de la partie : au départ, tout dépasse n’importe quel seuil et le plateau
-devient un mur uniforme ; à la fin, il ne reste qu’un croisement et il doit
-crever les yeux. L’échelle relative fait les deux.
+bout de la partie : au départ, presque tous les fils dépasseraient n’importe
+quel seuil et le plateau deviendrait un mur uniforme ; à la fin, il ne reste
+qu’un croisement et il doit crever les yeux. L’échelle relative fait les
+deux.
 
 Deux compteurs, deux palmarès : le **chrono**, et le nombre de **sommets
 distincts** qu’il a fallu toucher. Le second récompense l’analyse plutôt que
@@ -65,12 +66,19 @@ fin). Puis `N` nouvelle partie, `R` relancer la même, `T` monde, `U` ou
 
 ## Les écheveaux
 
-| Niveau | Sommets | Fils |
-| --- | --- | --- |
-| Fil | 10 | 20 |
-| Nœud | 16 | 32 |
-| Écheveau | 24 | 48 |
-| Toile | 34 | 68 |
+| Niveau | Sommets | Fils | Croisements au départ |
+| --- | --- | --- | --- |
+| Fil | 4 | 6 | 1 |
+| Nœud | 5 | 8 à 9 | 5 |
+| Écheveau | 7 | 13 | 5 à 13 |
+| Toile | 9 | 18 | 7 à 17 |
+
+C’est le nombre de croisements, et non le nombre de sommets, qui fait la
+difficulté ressentie : il double à peu près d’un niveau au suivant, et un test
+le vérifie. Le premier niveau tient en un seul geste — un graphe planaire
+3-connexe à quatre sommets ne peut être que K4, et un K4 mal dessiné n’admet
+jamais qu’un croisement. C’est une propriété du graphe, pas un réglage : Fil
+est une découverte, pas une épreuve.
 
 Le **défi du jour** se joue en Écheveau, en version canonique. La graine est la
 date : la même grille pour tout le monde, refabriquée chez chacun, sans qu’un
@@ -84,8 +92,8 @@ Trois axes indépendants, qui se combinent librement. Chaque combinaison a son
 propre palmarès : un temps en écheveau épinglé ne concourt pas contre un temps
 en écheveau nu.
 
-- **Sommets épinglés** — deux à quatre sommets sont posés d’avance à leur place
-  et refusent de bouger. Le démêlage doit s’organiser autour d’eux.
+- **Sommets épinglés** — un à trois sommets, selon la taille, sont posés
+  d’avance à leur place et refusent de bouger. Le démêlage doit s’organiser autour d’eux.
 - **Départ en cercle** — tous les sommets commencent sur un cercle, comme un
   diagramme de cordes. Très lisible, très intimidant.
 - **À l’aveugle** — les fils fautifs ne se signalent plus ; seul le compteur de
@@ -145,8 +153,25 @@ on brouille, et on rejette un brouillage qui serait déjà à moitié résolu.
 
 Une triangulation n’est pas toujours 3-connexe : il suffit qu’un sommet de la
 coque n’ait que ses deux voisins de bord. Aucun fil ne peut réparer ça, la
-triangulation est déjà maximale — alors on resème. Il faut deux essais en
-moyenne, jamais plus d’une dizaine.
+triangulation est déjà maximale — alors on resème. Il faut trois à cinq essais
+en moyenne, et davantage à quatre sommets, où il faut que le quatrième point
+tombe précisément dans le triangle des trois autres.
+
+Le nuage est ensuite **recentré et dilaté** pour occuper le cadre. Tirer
+quelques cases au hasard dans une grille laisse souvent la moitié du plateau
+vide, et à quatre sommets l’écran a l’air en panne. Les deux axes s’étirent
+séparément, ce qui est légitime : une application affine préserve exactement la
+planarité et les croisements, donc la garantie n’en souffre pas. Seul l’œil
+impose une bride, pour ne pas aplatir les figures en accordéon.
+
+**Le brouillage.** Une disposition de départ doit être emmêlée dans une
+fourchette — un plancher seul laissait passer la première venue au-dessus du
+seuil, et un même niveau sortait tantôt à quatre croisements, tantôt à
+vingt-deux. Elle doit surtout être **propre** : aucun sommet couché sur un fil.
+Ce n’en était pas une évidence. Comme un sommet posé sur un fil compte pour un
+croisement, la première version — qui retenait, à défaut de seuil atteignable,
+la disposition la plus embrouillée de toutes — allait systématiquement chercher
+les cas dégénérés. Invisible à trois cents croisements, ruineux à trois.
 
 **Le croisement.** Deux fils sont en conflit s’ils se traversent, se frôlent, ou
 si le sommet libre de l’un repose sur l’autre. Un sommet posé *sur* un fil
@@ -158,9 +183,8 @@ contact, jamais par un signe à 1e-15 près.
 **Le rendu, en SVG et pas en canvas.** Le SVG coûte un peu plus cher, mais le
 plateau reste un objet du document : il se met au clavier, il s’annonce, et le
 jeu échappe à la limite que la convention documente à contrecœur (« un plateau
-canvas n’est pas lisible par un lecteur d’écran »). À trente-quatre sommets et
-soixante-huit fils, il ne bronche pas — on ne redessine que les fils du sommet
-tiré.
+canvas n’est pas lisible par un lecteur d’écran »). À neuf sommets et dix-huit fils, il ne
+bronche pas — et on ne redessine de toute façon que les fils du sommet tiré.
 
 **Les tests.** `npm test` fait tourner sept suites en Node, sans navigateur :
 la géométrie, le générateur (les garanties vérifiées sur cent dix graines), la
@@ -203,14 +227,22 @@ les caches.
   quelques itérations de force dirigée résoudrait la grille à votre place en
   l’appelant une aide. L’indice, lui, déplace **un** sommet — le plus empêtré —
   et la partie cesse aussitôt de concourir.
-- **Pas de niveaux au-delà de trente-quatre sommets.** À cinquante, le plateau
-  d’un téléphone ne distingue plus deux sommets voisins ; ce serait un jeu de
-  patience contre l’écran, pas contre le graphe.
+- **Pas de niveaux au-delà de neuf sommets.** Au-delà, ce n’est plus un jeu de
+  réflexion mais un jeu de patience contre l’écran : les sommets deviennent des
+  têtes d’épingle et le plateau un plat de spaghettis. La première version en
+  proposait jusqu’à trente-quatre ; c’était une erreur d’échelle, corrigée en
+  1.1.0.
 - **Pas de compte, pas de classement en ligne, pas de télémétrie.** Aucun octet
   ne quitte la machine.
 
 ## Journal
 
+- **1.1.0** — la bonne échelle. Les niveaux passent de 10–34 sommets à 4–9 :
+  la première version était un jeu de patience contre l’écran. Le brouillage
+  est encadré par une fourchette et refuse les dispositions dégénérées, le
+  nuage de points remplit le cadre, sommets et fils doublent de taille. Dans
+  les Options, « le monde du jour » devient une case à cocher — cinq boutons
+  pour une grille de quatre laissaient le dernier monde seul sur sa ligne.
 - **1.0.0** — première publication. Le moteur et sa garantie de 3-connexité,
   les quatre mondes, le défi du jour, les trois variantes, l’aimant, le
-  partage, les palmarès par configuration. 344 vérifications sur huit suites.
+  partage, les palmarès par configuration.

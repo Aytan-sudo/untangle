@@ -6,13 +6,13 @@
 // décalage, la main couvre exactement ce qu’on essaie de placer — et sur un
 // jeu qui se joue au micro-ajustement, c’est rédhibitoire. À la souris, le
 // curseur ne cache rien : pas de décalage.
-export const DECALAGE_DOIGT = 100;
-export const RAYON_SAISIE_DOIGT = 62;
-export const RAYON_SAISIE_SOURIS = 42;
+export const DECALAGE_DOIGT = 150;
+export const RAYON_SAISIE_DOIGT = 110;
+export const RAYON_SAISIE_SOURIS = 75;
 
 // En deçà, le doigt n’a pas voulu déplacer quoi que ce soit : c’est un
 // tapotement, le sommet retourne d’où il vient et rien n’est compté.
-export const SEUIL_GESTE = 14;
+export const SEUIL_GESTE = 20;
 
 export const decalagePour = type => (type === 'mouse' ? 0 : DECALAGE_DOIGT);
 
@@ -81,9 +81,10 @@ export function brancherPointeur(svg, actions) {
 }
 
 // Au clavier, les flèches font deux choses selon qu’un sommet est en main ou
-// non : viser le voisin de ce côté, ou déplacer ce qu’on tient. C’est le seul
-// schéma qui reste utilisable sans souris sur un plateau de trente-quatre
-// sommets — une tabulation par sommet serait une punition.
+// non : viser le voisin de ce côté, ou déplacer ce qu’on tient. Une tabulation
+// par sommet marcherait à cette taille, mais viser le voisin « à gauche » dit
+// quelque chose du dessin, là où « le suivant dans l’ordre du document » ne
+// dit rien.
 export function brancherClavier(svg, actions) {
     let enMain = -1;
     let origine = null;

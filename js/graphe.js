@@ -2,12 +2,12 @@
 // d’adjacence — ni DOM, ni horloge, ni hasard : tout se teste en Node.
 
 // Tolérance de contact, en unités du plateau (le plateau fait 1000 de côté et
-// un sommet en occupe une quinzaine). Un sommet posé à moins de ça d’un fil
+// un sommet en occupe une trentaine). Un sommet posé à moins de ça d’un fil
 // est réputé posé dessus. À l’œil il l’est ; prétendre le contraire donnerait
 // des grilles « résolues » où un sommet repose visiblement sur une corde, et
 // laisserait la variante Aimant produire des superpositions exactes que le
 // test strict de croisement ne verrait jamais.
-export const CONTACT = 7;
+export const CONTACT = 16;
 
 const EPS = 1e-9;
 
@@ -75,11 +75,43 @@ export function nombreConflits(positions, aretes) {
 }
 
 // Combien de croisements chaque fil porte. Un simple « fautif / sain » ne dit
-// rien au début d’une partie : sur un écheveau brouillé, quarante-six fils sur
-// quarante-huit sont fautifs et le plateau devient un mur uniforme. Le compte,
-// lui, se gradue — on voit tout de suite les pires, et on voit le dernier.
+// rien au début d’une partie : sur un écheveau brouillé, la quasi-totalité des
+// fils sont fautifs et le plateau devient un mur uniforme. Le compte, lui, se
+// gradue — on voit tout de suite les pires, et on voit le dernier.
 // Il se calcule à partir des paires déjà trouvées : le rendu en a besoin à
 // chaque image, il ne va pas parcourir l’écheveau deux fois.
+// Les croisements francs seulement : deux fils qui se traversent vraiment, à
+// l’exclusion des contacts. Le jeu, lui, compte les deux — un sommet posé sur
+// un fil est bien une faute. Mais pour juger la qualité d’un brouillage, il
+// faut savoir distinguer un écheveau franchement emmêlé d’une disposition
+// simplement dégénérée.
+export function croisementsFrancs(positions, aretes) {
+    let compte = 0;
+    for (let i = 0; i < aretes.length; i++) {
+        for (let j = i + 1; j < aretes.length; j++) {
+            const [a1, b1] = aretes[i];
+            const [a2, b2] = aretes[j];
+            if (a1 === a2 || a1 === b2 || b1 === a2 || b1 === b2) continue;
+            if (segmentsSeTraversent(positions[a1], positions[b1], positions[a2], positions[b2])) compte++;
+        }
+    }
+    return compte;
+}
+
+// Un sommet posé sur un fil qui ne lui appartient pas — ou deux sommets
+// confondus, qui est le même accident. C’est une faute en cours de partie,
+// mais c’est surtout une disposition de départ qu’il ne faut jamais servir :
+// elle a l’air d’un bug, pas d’une énigme.
+export function unSommetReposeSurUnFil(positions, aretes) {
+    for (const [a, b] of aretes) {
+        for (let k = 0; k < positions.length; k++) {
+            if (k === a || k === b) continue;
+            if (distancePointSegment(positions[k], positions[a], positions[b]) <= CONTACT) return true;
+        }
+    }
+    return false;
+}
+
 export function comptesParArete(nombreAretes, paires) {
     const compte = new Array(nombreAretes).fill(0);
     for (const [i, j] of paires) { compte[i]++; compte[j]++; }

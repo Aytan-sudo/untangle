@@ -29,7 +29,7 @@ function creerSommet(document, index, epingle) {
     // Les rayons sont repris par les variables CSS de chaque monde ; ceux
     // posés ici en attribut sont le filet de sécurité d’un navigateur qui ne
     // saurait pas lire `r` en CSS — sans eux, les sommets disparaîtraient.
-    for (const [role, rayon] of [['sommet-halo', 34], ['sommet-corps', 16], ['sommet-coeur', 6]]) {
+    for (const [role, rayon] of [['sommet-halo', 62], ['sommet-corps', 32], ['sommet-coeur', 12]]) {
         const cercle = document.createElementNS(svg, 'circle');
         cercle.setAttribute('class', role);
         cercle.setAttribute('r', String(rayon));
@@ -37,7 +37,7 @@ function creerSommet(document, index, epingle) {
     }
     const rivet = document.createElementNS(svg, 'path');
     rivet.setAttribute('class', 'sommet-rivet');
-    rivet.setAttribute('d', 'M-7 0 H7 M0 -7 V7');
+    rivet.setAttribute('d', 'M-13 0 H13 M0 -13 V13');
     groupe.append(rivet);
     return groupe;
 }
@@ -92,13 +92,12 @@ export function rendreTout(positions) {
 // Quatre paliers plutôt qu’un drapeau, et une échelle relative au pire fil du
 // moment plutôt qu’à des seuils fixes.
 //
-// Des seuils fixes ne marchent à aucun bout de la partie : au départ, un
-// écheveau de vingt-quatre sommets compte trois cents croisements pour
-// quarante-huit fils — tout dépasse n’importe quel seuil, le plateau redevient
-// le mur uniforme qu’on voulait éviter. À la fin, il ne reste qu’un croisement
-// et il faut qu’il crève les yeux. L’échelle relative fait les deux : elle
-// désigne toujours les pires fils du moment, et le dernier croisement est
-// toujours au rouge vif.
+// Des seuils fixes ne marchent à aucun bout de la partie : au départ, presque
+// tous les fils portent plusieurs croisements — tout dépasse n’importe quel
+// seuil, le plateau redevient le mur uniforme qu’on voulait éviter. À la fin,
+// il ne reste qu’un croisement et il faut qu’il crève les yeux. L’échelle
+// relative fait les deux : elle désigne toujours les pires fils du moment, et
+// le dernier croisement est toujours au rouge vif.
 export const NIVEAUX_CHALEUR = ['', 'fil--chaud1', 'fil--chaud2', 'fil--chaud3'];
 
 export function paliersDeChaleur(compte, maximum = compte) {

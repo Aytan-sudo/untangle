@@ -8,7 +8,7 @@ export const VARIANTES = [
         id: 'epingles',
         nom: 'Sommets épinglés',
         court: 'épinglé',
-        resume: 'Deux à quatre sommets sont posés d’avance à leur place et refusent de bouger.'
+        resume: 'Un à trois sommets sont posés d’avance à leur place et refusent de bouger.'
     },
     {
         id: 'cercle',

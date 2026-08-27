@@ -1,6 +1,6 @@
 {
   "name": "untangle",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
   "description": "Démêlez un graphe planaire : tirez les sommets jusqu’à ce qu’aucun fil n’en croise un autre.",
   "type": "module",

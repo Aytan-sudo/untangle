@@ -192,6 +192,10 @@ kbd {
 
 .choix { display: flex; flex-wrap: wrap; gap: 6px; }
 
+/* Quatre mondes aux noms longs : en ligne, le dernier passe seul à la ligne
+   suivante et la rangée a l’air cassée. Deux par deux, c’est délibéré. */
+.choix--grille { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
 .choix button {
     flex: 1 1 auto;
     min-height: 42px;
