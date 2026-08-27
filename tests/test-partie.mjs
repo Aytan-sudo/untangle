@@ -151,11 +151,26 @@ check('l’aimant reste dans le cadre', aimanter(-900) >= MARGE && aimanter(9000
     check('le maillage est plus fin que l’écart entre sommets', pas < 120, `pas ${pas.toFixed(0)}`);
 
     // Et il doit rester bon marché : l’indice se demande en pleine partie.
+    //
+    // On compte le travail, pas le temps d’horloge. Une première version
+    // mesurait des millisecondes et passait ici pour échouer sur le runner de
+    // la CI, deux fois plus lent — un test qui dépend de la machine ne teste
+    // rien, il tire à pile ou face. Le nombre de positions essayées, lui, est
+    // le même partout et c’est bien ce qui est en cause si le balayage enfle.
     const jeu = partieNeuve(genererPuzzle({ graine: 'cout', niveau: 'toile' }));
-    const debut = performance.now();
-    for (let i = 0; i < 20; i++) positionSuggeree(jeu, i % jeu.puzzle.sommets);
-    const cout = (performance.now() - debut) / 20;
-    check('un conseil coûte moins d’une milliseconde', cout < 1, `${cout.toFixed(2)} ms`);
+    let evaluations = 0;
+    const compteur = new Proxy(jeu, {
+        get(cible, propriete) {
+            if (propriete === 'positions') evaluations++;
+            return cible[propriete];
+        }
+    });
+    positionSuggeree(compteur, 0);
+    const candidats = (BALAYAGE + 1) ** 2 + 1;
+    check('le conseil essaie une centaine de positions, pas des milliers',
+        candidats <= 200, String(candidats));
+    check('et il n’en évalue pas plus qu’il n’en essaie',
+        evaluations <= candidats * 4 + 20, `${evaluations} accès pour ${candidats} candidats`);
 }
 
 // — L’indice est déterministe
