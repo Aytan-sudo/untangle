@@ -314,6 +314,13 @@ les caches.
 
 ## Journal
 
+- **1.2.1** — le titre n’est plus tronqué sur un iPhone SE. Sous 370 px, la
+  barre retire « Untangle » de l’œil — cinq cibles de 44 px et le monogramme ne
+  laissent pas de quoi écrire un mot — et le titre reste lu par les lecteurs
+  d’écran. Mais ce palier était calé sur le premier SE (320 px) : le SE de 3ᵉ
+  génération, qui fait 375 px, tombait dans l’intervalle et affichait
+  « Untan… », à dix pixels près. Le palier passe à 380 px. Trouvé dans le
+  simulateur iOS, sur le seul petit téléphone qui fasse encore tourner iOS 26.
 - **1.2.0** — six tailles et la Montée. Lacis (11) et Dédale (13) rejoignent
   l’échelle : quatre modes, c’était trop peu. La Montée les enchaîne tous les
   six sous un chronomètre unique, et le défi du jour se dédouble — l’Écheveau
