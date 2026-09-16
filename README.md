@@ -7,6 +7,12 @@ hors ligne, sans serveur ni dépendance.
 Rien à deviner, rien à perdre, aucun coup irréversible : il n’y a qu’un nœud,
 et il finit toujours par céder.
 
+## Version 1.3.1 — Passeport 1.8.0
+
+Module commun du passeport 1.8.0 : **Maze for Adventurers** rejoint le thème
+Aventure, aux côtés de Snake. Toute la collection est désormais raccordée. Rien
+ne change dans le jeu.
+
 ## Version 1.3.0 — Le passeport commun
 
 Ouvert depuis le hub avec un passeport, le jeu range préférences, reprise et
