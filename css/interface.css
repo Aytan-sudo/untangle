@@ -355,12 +355,14 @@ dialog .echelle { margin: 12px 0; }
     .palier { font-size: 11px; }
 }
 
-/* Sous 370 px — l’iPhone SE — cinq cibles de 44 px et le monogramme mangent
-   les 292 px disponibles à dix pixels près : aucun réglage de graisse ne fera
-   tenir un mot là-dedans. Le titre se retire donc de l’œil sans se retirer de
-   la page : les lecteurs d’écran le lisent toujours, et le monogramme
-   continue de dire de quel jeu il s’agit. */
-@media (max-width: 370px) {
+/* Sous 380 px — l’iPhone SE fait 375 — cinq cibles de 44 px et le monogramme
+   mangent les 292 px disponibles à dix pixels près : aucun réglage de graisse
+   ne fera tenir un mot là-dedans. Le titre se retire donc de l’œil sans se
+   retirer de la page : les lecteurs d’écran le lisent toujours, et le
+   monogramme continue de dire de quel jeu il s’agit.
+   Le palier était à 370 px, calé sur le premier SE (320 px) : le SE de 3ᵉ
+   génération tombait dans l’intervalle et affichait « Untan… ». */
+@media (max-width: 380px) {
     .identite h1 {
         position: absolute;
         width: 1px; height: 1px;
