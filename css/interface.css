@@ -383,7 +383,7 @@ dialog .echelle { margin: 12px 0; }
     main { grid-column: 1; grid-row: 2 / span 2; }
     .hud { grid-column: 2; grid-row: 2; grid-template-columns: repeat(2, 1fr); }
     .echelle { grid-column: 2; grid-row: 3; }
-    .cadre { --cote: max(200px, min(48vw, calc(100dvh - 110px))); }
+    .cadre { --cote: max(200px, min(48vw, calc(100dvh - 154px))); }
     .identite p { display: none; }
 }
 

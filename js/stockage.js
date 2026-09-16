@@ -48,6 +48,10 @@ export const statistiquesVides = () => ({
 
 function obtenirCoffre() {
     if (coffre) return coffre;
+    // Ouvert depuis le hub avec un passeport, le jeu range tout dans l'espace
+    // du joueur ; en mode invité, dans le localStorage, comme avant.
+    const passeport = globalThis.Passeport?.stockageJeu('untangle');
+    if (passeport) { coffre = passeport; return coffre; }
     try {
         const sonde = `${PREFIXE}sonde`;
         globalThis.localStorage.setItem(sonde, '1');
@@ -148,3 +152,18 @@ export function enregistrerVictoire({ niveau, variantes, quotidien, dateJour, te
 }
 
 export function _reinitialiserPourTests() { coffre = null; memoire.clear(); }
+
+// ── Le passeport ──────────────────────────────────────────────────────────
+//
+// Les sommets déposés dans la journée, pour le tampon à l'effort. Le compte ne
+// vit que dans l'espace d'un joueur : en mode invité, rien n'est compté ni
+// écrit, et le stockage du jeu reste ce qu'il était avant le raccordement.
+
+export function compterGestePasseport(jour, espace = globalThis.Passeport?.stockageJeu('untangle') ?? null) {
+    if (!espace) return null;
+    let compte = null;
+    try { compte = JSON.parse(espace.getItem('untangle.passeport')); } catch { /* illisible : on repart */ }
+    const gestes = compte?.jour === jour && Number.isInteger(compte.gestes) ? compte.gestes + 1 : 1;
+    try { espace.setItem('untangle.passeport', JSON.stringify({ jour, gestes })); } catch { /* le passeport signale l'échec */ }
+    return gestes;
+}

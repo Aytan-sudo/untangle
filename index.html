@@ -13,6 +13,9 @@
 <link rel="stylesheet" href="css/themes.css">
 <link rel="stylesheet" href="css/plateau.css">
 <link rel="stylesheet" href="css/interface.css">
+<link rel="stylesheet" href="commun/passeport.css">
+<script src="commun/passeport.js"></script>
+<script src="commun/liaison.js" defer></script>
 <script>
     // Restauration du monde avant le premier pixel : posée ici et pas dans
     // app.js, sinon la page s’affiche en Cordage puis clignote. Sans
@@ -21,7 +24,10 @@
     // `tests/test-page.mjs` exécute ce script et vérifie qu’il dit la même chose.
     try {
         var mondes = ['cordage', 'enluminure', 'circuit', 'constellation'];
-        var enveloppe = JSON.parse(localStorage.getItem('untangle.preferences') || '{}');
+        // Avec un passeport, les réglages sont ceux du joueur ; en mode
+        // invité, ceux de l'appareil, comme avant.
+        var magasin = (globalThis.Passeport && Passeport.stockageJeu('untangle')) || localStorage;
+        var enveloppe = JSON.parse(magasin.getItem('untangle.preferences') || '{}');
         var prefs = enveloppe && enveloppe.schema === 1 ? enveloppe.donnees || {} : {};
         var choix = mondes.indexOf(prefs.theme) >= 0 ? prefs.theme : null;
         if (!choix) {
@@ -40,6 +46,9 @@
 <body>
 
 <div class="app">
+
+    <div class="passeport-ruban" data-passeport-ruban data-jeu="untangle"
+         data-consigne="Tampon : une grille démêlée ou 20 sommets"></div>
 
     <header class="barre">
         <div class="identite">
@@ -148,7 +157,7 @@
         <p class="note">Les deux records sont enregistrés dans tous les cas ; ce réglage choisit seulement lequel s’affiche en premier.</p>
 
         <button type="button" id="bouton-stats" class="outil pleine-largeur">Voir le palmarès</button>
-        <p class="version" id="version">Untangle 1.2.1</p>
+        <p class="version" id="version">Untangle 1.3.0</p>
     </div>
 </dialog>
 

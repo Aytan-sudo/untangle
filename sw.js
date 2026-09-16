@@ -6,10 +6,13 @@
 // et des caches. Un jeu cache-first y sert alors ses propres fichiers aux
 // autres — le préfixe des clés protège les données, rien ne protège les
 // fichiers.
-const VERSION = 'untangle-1.2.1';
+const VERSION = 'untangle-1.3.0';
 const COQUILLE = [
     './',
     'index.html',
+    'commun/passeport.js',
+    'commun/liaison.js',
+    'commun/passeport.css',
     'manifest.webmanifest',
     'css/themes.css',
     'css/plateau.css',

@@ -7,7 +7,7 @@
        et les outils servis : sur un écran court, ce sont les outils qui
        doivent rester atteignables, pas le plateau qui doit rester grand. Le
        plancher évite qu’un clavier virtuel ne le réduise à un timbre-poste. */
-    --cote: max(220px, min(92vw, 560px, calc(100dvh - 288px)));
+    --cote: max(220px, min(92vw, 560px, calc(100dvh - 332px)));
     position: relative;
     width: var(--cote);
     height: var(--cote);

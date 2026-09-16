@@ -7,6 +7,25 @@ hors ligne, sans serveur ni dépendance.
 Rien à deviner, rien à perdre, aucun coup irréversible : il n’y a qu’un nœud,
 et il finit toujours par céder.
 
+## Version 1.3.0 — Le passeport commun
+
+Ouvert depuis le hub avec un passeport, le jeu range préférences, reprise et
+palmarès dans l’espace du joueur ; en mode invité, rien ne change. Un bandeau
+rappelle le profil et la consigne du jour.
+
+Le tampon **Logique** récompense l’effort ou la réussite, au premier des deux :
+une grille démêlée le donne tout de suite ; sinon, c’est le vingtième sommet
+déposé dans la journée, toutes grilles confondues. Un sommet reposé au même
+endroit ne compte pas.
+
+Le profil traverse les réécritures d’adresse — partie libre, écheveau du jour,
+montée du jour : recharger la page ne rend plus la partie à l’invité. Les liens
+partagés, eux, ne le portent jamais.
+
+Le plateau rend au bandeau ses 44 px, dans les deux règles qui le dimensionnent :
+sans cela, les boutons du bas passaient sous la barre de Safari sur l’iPhone SE
+du simulateur, qui n’offre que 549 px utiles.
+
 ## Version 1.2.0
 
 - **deux tailles de plus** : Lacis (11 sommets) et Dédale (13). Quatre modes,

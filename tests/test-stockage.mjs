@@ -2,7 +2,8 @@ import { compteur } from './harness.mjs';
 import {
     PREFERENCES_PAR_DEFAUT, _reinitialiserPourTests, chargerPartie, chargerPreferences,
     chargerStatistiques, cleConfiguration, effacerStatistiques, enregistrerPartie,
-    enregistrerPreferences, enregistrerVictoire, oublierPartie, statistiquesVides
+    enregistrerPreferences, enregistrerVictoire, oublierPartie, statistiquesVides,
+    compterGestePasseport
 } from '../js/stockage.js';
 
 const { check, egal, rapport } = compteur();
@@ -155,6 +156,30 @@ function coffreDeTest() {
     effacerStatistiques();
     const vides = chargerStatistiques();
     egal('tout s’efface', [Object.keys(vides.configurations).length, vides.historique.length], [0, 0]);
+}
+
+// ── Le passeport ──────────────────────────────────────────────────────────
+//
+// Le compteur de sommets ne vit que dans l'espace d'un joueur. En mode invité
+// il rend `null` et n'écrit rien : sans passeport, le stockage du jeu reste
+// exactement ce qu'il était avant le raccordement.
+{
+    const donnees = coffreDeTest();
+    check('en mode invité, rien n’est compté', compterGestePasseport('2026-09-16') === null);
+    check('et rien n’est écrit dans le localStorage', !donnees.has('untangle.passeport'));
+
+    const espace = new Map();
+    const profil = {
+        getItem: cle => espace.get(cle) ?? null,
+        setItem: (cle, valeur) => espace.set(cle, String(valeur)),
+        removeItem: cle => espace.delete(cle)
+    };
+    egal('le premier sommet du jour compte pour un', compterGestePasseport('2026-09-16', profil), 1);
+    for (let i = 2; i <= 20; i++) compterGestePasseport('2026-09-16', profil);
+    egal('le vingtième est bien le vingtième', JSON.parse(espace.get('untangle.passeport')).gestes, 20);
+    egal('le lendemain repart de un', compterGestePasseport('2026-09-17', profil), 1);
+    espace.set('untangle.passeport', '{ abîmé');
+    egal('un compteur illisible repart de un', compterGestePasseport('2026-09-17', profil), 1);
 }
 
 rapport();

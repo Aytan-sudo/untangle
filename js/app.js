@@ -29,7 +29,7 @@ import {
 import {
     chargerPartie, chargerPreferences, chargerStatistiques, cleConfiguration,
     effacerStatistiques, enregistrerPartie, enregistrerPreferences, enregistrerVictoire,
-    oublierPartie
+    oublierPartie, compterGestePasseport
 } from './stockage.js';
 import { THEMES, THEME_AUTOMATIQUE, themeAffiche, themeSuivant } from './themes.js';
 import { IDS as VARIANTES_IDS, resumeVariantes, variantesDepuis } from './variantes.js';
@@ -236,6 +236,7 @@ function sauvegarder(force = false) {
 function conclure() {
     if (termine) return;
     termine = true;
+    noterPasseport({ reussite: true });   // la grille est démêlée : c'est la réussite
     arreterChrono();
     marquer(-1, 'sommet--saisi', false);
     marquer(-1, 'sommet--vise', false);
@@ -374,10 +375,30 @@ function basculerGenerateur() {
     }
 }
 
+// Le tampon du passeport : une grille démêlée le donne tout de suite ; sinon,
+// c'est le vingtième sommet déposé de la journée, toutes grilles confondues. En
+// mode invité, rien n'est compté ni écrit.
+function noterPasseport({ geste = false, reussite = false } = {}) {
+    const joueur = globalThis.Passeport;
+    if (!joueur?.profilId) return;
+    const gestes = geste ? compterGestePasseport(joueur.jourLocal()) : 0;
+    if (gestes !== null) joueur.noter('untangle', gestes, reussite);
+}
+
+// Le profil du passeport traverse les réécritures d'adresse : sans lui, un
+// rechargement rendrait la partie à l'invité. Les liens partagés, eux, partent
+// d'une adresse nettoyée (`lienDePartage`) et ne le portent jamais.
+function adresse(requete = '') {
+    const profil = new URL(location.href).searchParams.get('profil');
+    const url = new URL(`${location.pathname}${requete}`, location.origin);
+    if (profil !== null) url.searchParams.set('profil', profil);
+    return `${url.pathname}${url.search}`;
+}
+
 // ── Lancer une partie ─────────────────────────────────────────────────────
 
 function partieLibre(graine = graineLibre()) {
-    history.replaceState(null, '', location.pathname);
+    history.replaceState(null, '', adresse());
     if (preferences.mode === MODE_MONTEE) { lancerMontee(graine, null); return; }
     montee = null;
     demarrer({
@@ -400,7 +421,7 @@ function lancerMontee(graine, dateJour) {
 
 function partieDuJour() {
     const jour = dateLocale();
-    history.replaceState(null, '', `?jour=${jour}`);
+    history.replaceState(null, '', adresse(`?jour=${jour}`));
     montee = null;
     demarrer({
         mode: MODE_GRILLE,
@@ -411,7 +432,7 @@ function partieDuJour() {
 
 function monteeDuJour() {
     const jour = dateLocale();
-    history.replaceState(null, '', `?montee=${jour}`);
+    history.replaceState(null, '', adresse(`?montee=${jour}`));
     lancerMontee(jour, jour);
 }
 
@@ -480,6 +501,7 @@ const actions = {
         })();
         etat.positions[index] = avant;
         const bouge = deposer(etat, index, cible.x, cible.y, { aimant: preferences.aimant });
+        if (bouge) noterPasseport({ geste: true });   // un sommet vraiment déplacé, jamais un geste rendu
         if (!bouge) {
             placerSommet(index, avant.x, avant.y);
             rendreFilsDe(index, etat.positions);

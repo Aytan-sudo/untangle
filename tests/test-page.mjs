@@ -127,6 +127,22 @@ egal('un schéma inconnu retombe sur le monde du jour',
     restaurer(JSON.stringify({ schema: 42, donnees: { theme: 'circuit' } })), themeDuJour(dateLocale()));
 check('le script est dans le <head>, avant le premier rendu',
     page.indexOf('<script>') < page.indexOf('</head>'));
+// Avec un passeport, les réglages lus sont ceux du joueur ; sans, ceux de
+// l'appareil. Le script ci-dessus tourne avec un faux `localStorage` et sans
+// `Passeport` : c'est le chemin du mode invité qu'il vérifie.
+check('le script d’amorce passe par l’espace du joueur quand il y en a un',
+    page.includes("Passeport.stockageJeu('untangle')")
+    && page.includes("getItem('untangle.preferences')"));
+
+// ── Le passeport ──────────────────────────────────────────────────────────
+// Sans `data-jeu`, le bandeau s'affiche mais aucun tampon n'est attribué ;
+// sans les fichiers dans la coquille, la page hors ligne perd l'espace du
+// joueur.
+check('la page porte le bandeau du passeport',
+    page.includes('data-passeport-ruban data-jeu="untangle"'));
+check('le module commun est chargé et mis en cache',
+    ['passeport.js', 'liaison.js', 'passeport.css'].every(nom =>
+        page.includes(`commun/${nom}`) && coquille.includes(`commun/${nom}`)));
 
 // ── Niveaux, variantes et défi du jour ────────────────────────────────────
 check('le défi du jour vise un niveau qui existe', Boolean(NIVEAUX[NIVEAU_QUOTIDIEN]));
