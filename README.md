@@ -7,6 +7,12 @@ hors ligne, sans serveur ni dépendance.
 Rien à deviner, rien à perdre, aucun coup irréversible : il n’y a qu’un nœud,
 et il finit toujours par céder.
 
+## Version 1.3.2 — Passeport 1.9.0
+
+Module commun du passeport 1.9.0 : deux jeux neufs rejoignent la collection,
+**Le compte est bon** (thème Nombres) et **La Ruche** (thème Mots). Rien ne
+change dans le jeu.
+
 ## Version 1.3.1 — Passeport 1.8.0
 
 Module commun du passeport 1.8.0 : **Maze for Adventurers** rejoint le thème
